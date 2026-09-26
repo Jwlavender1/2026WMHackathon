@@ -1,6 +1,6 @@
 # Phase 1 — MVP Source of Truth
 
-[Certain] Status: proposed specification, pending user approval. This phase contains documentation only. All design decisions below are recommendations [Likely], not implemented behavior.
+[Certain] Status: approved by the user on September 26, 2026. Phase 2 implements the foundation described below, using the supplied Commonly mockup as the visual reference. Implementation and verification notes appear at the end.
 
 ## 1. Product contract and boundaries
 
@@ -16,15 +16,15 @@ Deliver one complete journey: an organization publishes volunteer opportunities;
 
 ## 2. Stack
 
-| Layer | Recommendation | Purpose |
-| --- | --- | --- |
-| Web application | Next.js App Router, React, TypeScript | One application for pages, reads, and server mutations |
-| UI | Tailwind CSS and a small set of accessible shadcn/ui components | Responsive forms, cards, dialogs, tabs |
-| Data and identity | Supabase PostgreSQL, Auth, Storage | Relational data, email/password sessions, avatar images |
-| Live thread | Supabase Realtime Postgres Changes | Subscribe to authorized event comments |
-| Validation | Zod and PostgreSQL constraints | Validate inputs and preserve data integrity |
-| Hosting | Vercel plus a Supabase project | Straightforward deployment |
-| Verification | TypeScript/ESLint, focused database tests, Playwright smoke flow | Verify permissions and the core journey |
+| Layer             | Recommendation                                                   | Purpose                                                 |
+| ----------------- | ---------------------------------------------------------------- | ------------------------------------------------------- |
+| Web application   | Next.js App Router, React, TypeScript                            | One application for pages, reads, and server mutations  |
+| UI                | Tailwind CSS and a small set of accessible shadcn/ui components  | Responsive forms, cards, dialogs, tabs                  |
+| Data and identity | Supabase PostgreSQL, Auth, Storage                               | Relational data, email/password sessions, avatar images |
+| Live thread       | Supabase Realtime Postgres Changes                               | Subscribe to authorized event comments                  |
+| Validation        | Zod and PostgreSQL constraints                                   | Validate inputs and preserve data integrity             |
+| Hosting           | Vercel plus a Supabase project                                   | Straightforward deployment                              |
+| Verification      | TypeScript/ESLint, focused database tests, Playwright smoke flow | Verify permissions and the core journey                 |
 
 Use the Supabase JavaScript client, generated database types, SQL migrations, and `@supabase/ssr` cookie sessions. Pin compatible stable package versions and commit the lockfile during Phase 2. A separate API service, ORM, queue, and global client state library are unnecessary for this scope.
 
@@ -34,17 +34,17 @@ Use the Supabase JavaScript client, generated database types, SQL migrations, an
 
 Proposed conventions: UUID primary keys, `created_at timestamptz` on all application tables, `updated_at timestamptz` on mutable records, non-null fields unless marked `?`, and foreign keys on every reference. Store instants in UTC; retain an IANA event time zone, default `America/New_York`.
 
-| Table | Fields beyond common timestamps | Relationships / constraints |
-| --- | --- | --- |
-| `auth.users` | Managed ID, email, credentials | Supabase-managed identity; never expose credentials or copy them into application tables |
-| `users` | `id`, `role: volunteer\|organization` | ID is PK/FK to `auth.users`; role set during onboarding and immutable through ordinary client updates |
-| `profiles` | `user_id`, `display_name text`, `avatar_path text?`, `bio text`, `city text` | `user_id` is PK/FK to users; one profile per account |
-| `groups` | `id`, `owner_id`, `name text`, `slug text`, `description text`, `city text`, `website_url text?` | Unique owner and slug; owner must have organization role |
-| `event_series` | `id`, `group_id`, `frequency: weekly`, `interval_weeks smallint`, `occurrence_count smallint`, `timezone text`, `first_local_start timestamp`, `duration_minutes int` | Interval 1 or 2; count 2–12; immutable generation recipe |
-| `events` | `id`, `group_id`, `series_id?`, `occurrence_index smallint?`, `title text`, `description text`, `venue text`, `address text`, `city text`, `starts_at timestamptz`, `ends_at timestamptz`, `timezone text`, `resources_to_bring text[]`, `status: published\|cancelled` | End after start; unique `(series_id, occurrence_index)`; series/group must match; series ID/index both present or both absent |
-| `event_tasks` | `id`, `event_id`, `name text`, `description text`, `capacity int` | Capacity > 0; unique task name per occurrence; unique `(id, event_id)` supports composite FK |
-| `signups` | `id`, `event_id`, `task_id`, `volunteer_id`, `status: active\|withdrawn`, `verified_minutes int?`, `verified_by uuid?`, `verified_at timestamptz?` | Unique `(event_id, volunteer_id)`; composite `(task_id, event_id)` FK to task; verifier FK to users; attendance fields all null or all present |
-| `event_comments` | `id`, `event_id`, `author_id`, `body text`, `hidden_at timestamptz?` | Author FK to users; trimmed body 1–2,000 characters; hide preserves thread history |
+| Table            | Fields beyond common timestamps                                                                                                                                                                                                                                         | Relationships / constraints                                                                                                                    |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `auth.users`     | Managed ID, email, credentials                                                                                                                                                                                                                                          | Supabase-managed identity; never expose credentials or copy them into application tables                                                       |
+| `users`          | `id`, `role: volunteer\|organization`                                                                                                                                                                                                                                   | ID is PK/FK to `auth.users`; role set during onboarding and immutable through ordinary client updates                                          |
+| `profiles`       | `user_id`, `display_name text`, `avatar_path text?`, `bio text`, `city text`                                                                                                                                                                                            | `user_id` is PK/FK to users; one profile per account                                                                                           |
+| `groups`         | `id`, `owner_id`, `name text`, `slug text`, `description text`, `city text`, `website_url text?`                                                                                                                                                                        | Unique owner and slug; owner must have organization role                                                                                       |
+| `event_series`   | `id`, `group_id`, `frequency: weekly`, `interval_weeks smallint`, `occurrence_count smallint`, `timezone text`, `first_local_start timestamp`, `duration_minutes int`                                                                                                   | Interval 1 or 2; count 2–12; immutable generation recipe                                                                                       |
+| `events`         | `id`, `group_id`, `series_id?`, `occurrence_index smallint?`, `title text`, `description text`, `venue text`, `address text`, `city text`, `starts_at timestamptz`, `ends_at timestamptz`, `timezone text`, `resources_to_bring text[]`, `status: published\|cancelled` | End after start; unique `(series_id, occurrence_index)`; series/group must match; series ID/index both present or both absent                  |
+| `event_tasks`    | `id`, `event_id`, `name text`, `description text`, `capacity int`                                                                                                                                                                                                       | Capacity > 0; unique task name per occurrence; unique `(id, event_id)` supports composite FK                                                   |
+| `signups`        | `id`, `event_id`, `task_id`, `volunteer_id`, `status: active\|withdrawn`, `verified_minutes int?`, `verified_by uuid?`, `verified_at timestamptz?`                                                                                                                      | Unique `(event_id, volunteer_id)`; composite `(task_id, event_id)` FK to task; verifier FK to users; attendance fields all null or all present |
+| `event_comments` | `id`, `event_id`, `author_id`, `body text`, `hidden_at timestamptz?`                                                                                                                                                                                                    | Author FK to users; trimmed body 1–2,000 characters; hide preserves thread history                                                             |
 
 Relationships: identity → user → profile; organization user → group → events → tasks → sign-ups; volunteer user → sign-ups; group → series → occurrences; event → comments ← author.
 
@@ -72,20 +72,20 @@ Every Server Action validates the authenticated user, input, and ownership. Tran
 
 Use server-side data access helpers for initial page reads and Server Actions for mutations; avoid a parallel REST API for the same operations. Return consistent action results: success data or a code plus field errors (`UNAUTHENTICATED`, `FORBIDDEN`, `VALIDATION_ERROR`, `FULL`, `CONFLICT`, `NOT_FOUND`).
 
-| Interface | Contract |
-| --- | --- |
-| `signUp`, `signIn`, `signOut` | Supabase Auth; validated initial role; idempotent onboarding creates user/profile together |
-| `GET /auth/confirm` | Validate authentication email token and redirect to onboarding/profile |
-| `getMyProfile`, `updateProfile`, `uploadAvatar` | Owner profile; computed hours; validated image upload |
-| `getMyGroup`, `createGroup`, `updateGroup` | Organization owner only; enforce one group per owner |
-| `listEvents({q, city, groupId, task, cursor})` | Public published upcoming events; title/description search, case-insensitive city/task substring, exact group; filters combine with AND; 20 events per page sorted by `(starts_at, id)` |
-| `getGroup(slug)`, `getEvent(id)` | Safe public projections, tasks, remaining slots, recurrence label; personalized reservation fetched separately |
-| `getMyEvents`, `getEventHub` | Volunteer reservations including cancellations, or owner's events by tab |
-| `createEvent(input)` | Owner only; event/tasks and optional finite series created atomically |
-| `updateEvent(id, input)`, `cancelEvent(id)` | Owner only; lifecycle and capacity checks; occurrence-level operations |
-| `joinEvent(eventId, taskId)`, `withdrawSignup(eventId)` | Volunteer only; transactional capacity and identity checks |
-| `getAttendees(eventId)`, `verifyAttendance(signupId, minutes)` | Owner only; attendance upsert, verifier/time recorded, hours refreshed |
-| `listComments(eventId, cursor)`, `postComment`, `hideComment` | Authorized participants; 50 messages per page; thread restrictions applied |
+| Interface                                                      | Contract                                                                                                                                                                                |
+| -------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `signUp`, `signIn`, `signOut`                                  | Supabase Auth; validated initial role; idempotent onboarding creates user/profile together                                                                                              |
+| `GET /auth/confirm`                                            | Validate authentication email token and redirect to onboarding/profile                                                                                                                  |
+| `getMyProfile`, `updateProfile`, `uploadAvatar`                | Owner profile; computed hours; validated image upload                                                                                                                                   |
+| `getMyGroup`, `createGroup`, `updateGroup`                     | Organization owner only; enforce one group per owner                                                                                                                                    |
+| `listEvents({q, city, groupId, task, cursor})`                 | Public published upcoming events; title/description search, case-insensitive city/task substring, exact group; filters combine with AND; 20 events per page sorted by `(starts_at, id)` |
+| `getGroup(slug)`, `getEvent(id)`                               | Safe public projections, tasks, remaining slots, recurrence label; personalized reservation fetched separately                                                                          |
+| `getMyEvents`, `getEventHub`                                   | Volunteer reservations including cancellations, or owner's events by tab                                                                                                                |
+| `createEvent(input)`                                           | Owner only; event/tasks and optional finite series created atomically                                                                                                                   |
+| `updateEvent(id, input)`, `cancelEvent(id)`                    | Owner only; lifecycle and capacity checks; occurrence-level operations                                                                                                                  |
+| `joinEvent(eventId, taskId)`, `withdrawSignup(eventId)`        | Volunteer only; transactional capacity and identity checks                                                                                                                              |
+| `getAttendees(eventId)`, `verifyAttendance(signupId, minutes)` | Owner only; attendance upsert, verifier/time recorded, hours refreshed                                                                                                                  |
+| `listComments(eventId, cursor)`, `postComment`, `hideComment`  | Authorized participants; 50 messages per page; thread restrictions applied                                                                                                              |
 
 Realtime subscriptions listen only to the active event's comments under the same read policies. Re-fetch authorized messages on reconnect and offer manual refresh on connection failure. Database rows remain the authoritative history. [Certain] Supabase supports Postgres Changes subscriptions with access controlled by RLS: [Realtime documentation](https://supabase.com/docs/guides/realtime/postgres-changes).
 
@@ -120,13 +120,13 @@ The seed script will create two organization owners, three volunteers, both grou
 
 Use the seed execution date as local day D in `America/New_York`; the example dates below assume D = September 26, 2026. Subsequent fresh seeds calculate dates from their execution date.
 
-| Organization / opportunity | Date and local time | Demo location | Task capacities | Bring / recurrence |
-| --- | --- | --- | --- | --- |
-| Williamsburg House of Mercy — Pantry Packing | D+3: Sep 29, 9–11 a.m. | Williamsburg, demo pantry packing room | Sort donations: 6; pack grocery bags: 6 | Closed-toe shoes, water; weekly occurrence 1 of 2 |
-| Williamsburg House of Mercy — Pantry Packing | D+10: Oct 6, 9–11 a.m. | Same demo pantry | Sort donations: 6; pack grocery bags: 6 | Closed-toe shoes, water; weekly occurrence 2 of 2 |
-| Williamsburg House of Mercy — Community Meal Preparation | D+4: Sep 30, 3–5 p.m. | Williamsburg, demo community kitchen | Food preparation: 4; dining setup: 4 | Closed-toe shoes, hair tie; one-time |
-| Williamsburg Regional Library — Book Donation Sorting | D+5: Oct 1, 10 a.m.–noon | Williamsburg, demo library sorting room | Sort books: 6; arrange donation tables: 4 | Comfortable shoes, water; one-time |
-| Williamsburg Regional Library — Community Reading Kit Assembly | D+7: Oct 3, 1–3 p.m. | Williamsburg, demo library meeting room | Assemble kits: 8; prepare labels: 2 | Reading glasses if needed; supplies provided; one-time |
+| Organization / opportunity                                     | Date and local time      | Demo location                           | Task capacities                           | Bring / recurrence                                     |
+| -------------------------------------------------------------- | ------------------------ | --------------------------------------- | ----------------------------------------- | ------------------------------------------------------ |
+| Williamsburg House of Mercy — Pantry Packing                   | D+3: Sep 29, 9–11 a.m.   | Williamsburg, demo pantry packing room  | Sort donations: 6; pack grocery bags: 6   | Closed-toe shoes, water; weekly occurrence 1 of 2      |
+| Williamsburg House of Mercy — Pantry Packing                   | D+10: Oct 6, 9–11 a.m.   | Same demo pantry                        | Sort donations: 6; pack grocery bags: 6   | Closed-toe shoes, water; weekly occurrence 2 of 2      |
+| Williamsburg House of Mercy — Community Meal Preparation       | D+4: Sep 30, 3–5 p.m.    | Williamsburg, demo community kitchen    | Food preparation: 4; dining setup: 4      | Closed-toe shoes, hair tie; one-time                   |
+| Williamsburg Regional Library — Book Donation Sorting          | D+5: Oct 1, 10 a.m.–noon | Williamsburg, demo library sorting room | Sort books: 6; arrange donation tables: 4 | Comfortable shoes, water; one-time                     |
+| Williamsburg Regional Library — Community Reading Kit Assembly | D+7: Oct 3, 1–3 p.m.     | Williamsburg, demo library meeting room | Assemble kits: 8; prepare labels: 2       | Reading glasses if needed; supplies provided; one-time |
 
 Descriptions should explain the listed tasks and meeting point. Completed fixture: D−7 pantry session; two volunteers verified for 120 and 90 minutes, yielding 2.0 and 1.5 profile hours; third volunteer has no verified attendance and 0 hours.
 
@@ -141,4 +141,14 @@ Descriptions should explain the listed tasks and meeting point. Completed fixtur
 - Completed attendance updates the correct profile total once; revisions replace minutes; cancelled events cannot accrue hours.
 - Seeded past/upcoming events populate the dashboard and discovery views; mobile navigation and the core registration-to-attendance journey work.
 
-[Certain] Approval gate: the user requested review and approval of Phase 1 before Phase 2. No application code, migration, or seed implementation is included in this phase.
+[Certain] The user approved Phase 1 and authorized the foundation commit on main.
+
+## 8. Foundation implementation notes
+
+- The supplied mockup establishes the Commonly brand, sidebar, search header, dark photo hero, emerald/mint palette, serif headings, impact card, and opportunity cards. Images are bundled locally.
+- Messages links to authorized event conversations; Community lists organization groups. The impact card reports verified all-time totals and the next registered event. Monthly goals, unread badges, and direct messaging are not fabricated.
+- A visibly labeled local demo uses the same domain rules and realistic fixtures, with browser storage persistence and sample account switching. It is not authentication or a shared database. Live mode uses Supabase cookie sessions, Server Actions, authorized database functions, RLS, Storage, and Realtime.
+- The initial scaffold uses a single authorized `app_snapshot()` read and an `app_command(kind, payload)` mutation dispatcher rather than separate transport endpoints per operation. Each mutation still validates its own schema and permissions. Initial records are fetched server-side, then discovery filters and 20-item pages are applied in the browser; conversation history displays 50 messages at a time. This intentionally targets hackathon-sized data. Move reads to filtered database queries and cursor pagination before growing the dataset.
+- Accessible native controls and Tailwind plus shared CSS provide the UI; no additional shadcn component dependency is needed yet. Database-shaped TypeScript models are included; generate Supabase database types when linking a hosted project.
+- The finite series is generated inside a database transaction. Editing preserves task identities and allows capacities to change; adding/removing/renaming tasks on an existing occurrence is outside this initial editor. Event titles, descriptions, meeting points, resources, and times can be edited before the start.
+- Database verification runs the actual migration in PGlite with a small Auth/Storage schema harness. This checks SQL constraints, grants, and RLS, but does not replace hosted Supabase authentication, image upload, Realtime, or independent-connection concurrency verification. Those require a configured Supabase project.

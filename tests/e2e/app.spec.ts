@@ -1,0 +1,145 @@
+import { test, expect } from '@playwright/test';
+import { fixtureId } from '../../src/lib/fixtures';
+import { mkdir } from 'node:fs/promises';
+
+test('mockup shell, filtering, reservations, messages, and profile persistence', async ({
+  page,
+}) => {
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto('/');
+  await expect(page.getByRole('heading', { name: 'Small acts. Real change.' })).toBeVisible();
+  await mkdir('.artifacts', { recursive: true });
+  await page.evaluate(() =>
+    Promise.all(Array.from(document.images).map((img) => img.decode().catch(() => {}))),
+  );
+  await page.screenshot({ path: '.artifacts/home-desktop.png', fullPage: true });
+  await page.getByRole('link', { name: 'Discover', exact: true }).click();
+  await page.getByLabel('Location', { exact: true }).fill('Williamsburg');
+  await page.getByLabel('Organizing group').selectOption(fixtureId(11));
+  await page.getByLabel('Task', { exact: true }).fill('sort books');
+  await page.getByRole('button', { name: 'Filter', exact: true }).click();
+  await expect(page.locator('.event-card')).toHaveCount(1);
+  await page.getByRole('heading', { name: 'Book Donation Sorting', exact: true }).click();
+  await page.getByRole('button', { name: 'Join', exact: true }).first().click();
+  await expect(page.getByRole('heading', { name: 'You’re on the list!' })).toBeVisible();
+  await page
+    .getByLabel('Your message')
+    .fill('Looking forward to helping. See you at the sorting room!');
+  await page.getByRole('button', { name: 'Send', exact: true }).click();
+  await expect(page.locator('.comments')).toContainText('Looking forward to helping.');
+  await page.reload();
+  await expect(page.getByRole('heading', { name: 'You’re on the list!' })).toBeVisible();
+  await expect(page.locator('.comments')).toContainText('Looking forward to helping.');
+  await page.goto('/profile');
+  await page
+    .getByRole('textbox', { name: 'About me', exact: true })
+    .fill('I love helping my Williamsburg community.');
+  await page.getByRole('button', { name: 'Save profile' }).click();
+  await expect(page.getByRole('status')).toContainText('Profile saved');
+  await page.reload();
+  await expect(page.getByRole('textbox', { name: 'About me', exact: true })).toHaveValue(
+    'I love helping my Williamsburg community.',
+  );
+  await page
+    .getByLabel('Profile picture')
+    .setInputFiles({
+      name: 'avatar.png',
+      mimeType: 'image/png',
+      buffer: Buffer.from(
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jk0sAAAAASUVORK5CYII=',
+        'base64',
+      ),
+    });
+  await expect(page.getByRole('status')).toContainText('Profile picture updated');
+  await page.reload();
+  await expect(page.locator('.avatar.large img')).toHaveAttribute('src', /^data:image\/png/);
+  expect(errors).toEqual([]);
+});
+
+test('new organization onboarding, group setup, occurrence editing, and cancellation', async ({
+  page,
+}) => {
+  await page.goto('/sign-up');
+  await page.getByRole('button', { name: 'Organization', exact: true }).click();
+  await page.getByLabel('Your name', { exact: true }).fill('Community Coordinator');
+  await page.getByRole('button', { name: 'Create account', exact: true }).click();
+  await page.getByRole('link', { name: 'My group', exact: true }).click();
+  await page.getByLabel('Organization name').fill('Neighborhood Helpers');
+  await page
+    .getByRole('textbox', { name: 'About your organization' })
+    .fill('Neighbors working together to make Williamsburg a more welcoming place.');
+  await page.getByRole('button', { name: 'Create group', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Event hub', exact: true })).toBeVisible();
+  await page.getByRole('link', { name: 'Create event', exact: true }).last().click();
+  await page.getByLabel('Event title', { exact: true }).fill('Neighborhood Welcome Day');
+  await page
+    .getByRole('textbox', { name: 'Description', exact: true })
+    .fill('Help welcome new neighbors with a friendly community gathering.');
+  await page.getByLabel('Venue', { exact: true }).fill('Community room');
+  await page.getByLabel('Address / meeting point').fill('Demo community room entrance');
+  await page.getByRole('button', { name: 'Publish event' }).click();
+  await page.getByRole('link', { name: 'Manage', exact: true }).click();
+  await page.getByLabel('Event title', { exact: true }).fill('Neighborhood Welcome Afternoon');
+  await page.getByRole('button', { name: 'Save changes' }).click();
+  await expect(
+    page.getByRole('heading', { name: 'Neighborhood Welcome Afternoon', exact: true }),
+  ).toBeVisible();
+  await page.getByRole('link', { name: 'Manage this event' }).click();
+  await page.getByRole('button', { name: 'Cancel event', exact: true }).click();
+  await page.getByRole('button', { name: 'Confirm cancellation' }).click();
+  await page.getByRole('link', { name: 'View event', exact: true }).click();
+  await expect(page.getByText('This event has been cancelled.', { exact: true })).toBeVisible();
+});
+
+test('organization creates recurring events and verifies attendance', async ({ page }) => {
+  await page.goto('/');
+  await page.getByLabel('Demo account', { exact: true }).selectOption(fixtureId(4));
+  await page.getByRole('link', { name: 'Event hub', exact: true }).click();
+  await page.getByRole('link', { name: 'Create event', exact: true }).last().click();
+  await page.getByLabel('Event title', { exact: true }).fill('Saturday Community Care');
+  await page
+    .getByLabel('Description', { exact: true })
+    .fill('Pack supplies and meet neighbors at the community center.');
+  await page.getByLabel('Venue', { exact: true }).fill('Community center');
+  await page.getByLabel('Address / meeting point').fill('Demo community center entrance');
+  await page.getByRole('combobox', { name: 'Repeat', exact: true }).selectOption('1');
+  await page.getByLabel('Number of occurrences').fill('3');
+  await page.getByRole('button', { name: 'Publish event' }).click();
+  await expect(page).toHaveURL(/\/event-hub$/);
+  await expect(
+    page.getByRole('heading', { name: 'Saturday Community Care', exact: true }),
+  ).toHaveCount(3);
+  await page.getByRole('tab', { name: 'Previous events' }).click();
+  await page.getByRole('link', { name: 'Record attendance' }).click();
+  await page.getByRole('spinbutton', { name: 'Minutes served by Maya King' }).fill('60');
+  await page
+    .locator('.attendee-row')
+    .filter({ hasText: 'Maya King' })
+    .getByRole('button', { name: 'Update', exact: true })
+    .click();
+  await expect(page.getByRole('status')).toContainText('Attendance saved');
+  await page.getByLabel('Demo account', { exact: true }).selectOption(fixtureId(1));
+  await page.goto('/profile');
+  await expect(page.locator('.hours-number')).toHaveText('1.0');
+});
+
+test('mobile navigation and forms fit without horizontal overflow', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/');
+  await expect(page.getByRole('heading', { name: 'Small acts. Real change.' })).toBeVisible();
+  await page.evaluate(() =>
+    Promise.all(Array.from(document.images).map((img) => img.decode().catch(() => {}))),
+  );
+  await page.screenshot({ path: '.artifacts/home-mobile.png', fullPage: true });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
+    true,
+  );
+  await page.getByRole('button', { name: 'Open navigation' }).click();
+  await page.getByRole('link', { name: 'Discover', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'A cause for every kind of you.' })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
+    true,
+  );
+  await page.screenshot({ path: '.artifacts/browse-mobile.png', fullPage: true });
+});
