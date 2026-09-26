@@ -1,8 +1,8 @@
 ﻿'use client';
 /* eslint-disable @next/next/no-img-element */
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
-import { ArrowUpRight, LogOut, Search, Sparkle, X } from 'lucide-react';
+import { usePathname } from 'next/navigation';
+import { ArrowUpRight, LogOut, Sparkle, X } from 'lucide-react';
 import { useApp } from './provider';
 import { CardNav } from './card-nav';
 import { initials } from '@/lib/domain';
@@ -10,8 +10,7 @@ import type { DemoState } from '@/lib/types';
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { data, demo, notice, setNotice, switchUser, logout } = useApp();
-  const path = usePathname(),
-    router = useRouter();
+  const path = usePathname();
   const org = data.profile?.role === 'organization';
   return (
     <>
@@ -23,57 +22,41 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           key={`${path}:${data.profile?.role}`}
           organization={org}
           signedIn={!!data.profile}
+          accountControls={
+            <div className="account-tools">
+              {data.profile ? (
+                <>
+                  <Link href="/profile" className="account-link" aria-label="Your profile">
+                    <span className="avatar">
+                      {data.profile.avatar_path ? (
+                        <img src={data.profile.avatar_path} alt="" />
+                      ) : (
+                        initials(data.profile.display_name)
+                      )}
+                    </span>
+                    <span className="account-copy">
+                      <strong>{data.profile.display_name}</strong>
+                      <small>{org ? 'Organization' : 'Volunteer'}</small>
+                    </span>
+                  </Link>
+                  <button
+                    className="icon-button sign-out"
+                    aria-label="Sign out"
+                    onClick={() => void logout()}
+                  >
+                    <LogOut size={18} />
+                  </button>
+                </>
+              ) : (
+                <Link className="text-link" href="/sign-in">
+                  Sign in <ArrowUpRight size={17} />
+                </Link>
+              )}
+            </div>
+          }
         />
       </header>
       <div className="workspace">
-        <div className="workspace-toolbar">
-          <form
-            className="global-search"
-            action={(form) =>
-              router.push(`/browse?q=${encodeURIComponent(String(form.get('q') ?? ''))}`)
-            }
-          >
-            <Search size={19} />
-            <input
-              aria-label="Search events, causes, or places"
-              name="q"
-              placeholder="Find your next way to show up"
-            />
-            <button className="search-submit" type="submit" aria-label="Search">
-              <ArrowUpRight size={19} />
-            </button>
-          </form>
-          <div className="account-tools">
-            {data.profile ? (
-              <>
-                <Link href="/profile" className="account-link" aria-label="Your profile">
-                  <span className="avatar">
-                    {data.profile.avatar_path ? (
-                      <img src={data.profile.avatar_path} alt="" />
-                    ) : (
-                      initials(data.profile.display_name)
-                    )}
-                  </span>
-                  <span className="account-copy">
-                    <strong>{data.profile.display_name}</strong>
-                    <small>{org ? 'Organization' : 'Volunteer'}</small>
-                  </span>
-                </Link>
-                <button
-                  className="icon-button sign-out"
-                  aria-label="Sign out"
-                  onClick={() => void logout()}
-                >
-                  <LogOut size={18} />
-                </button>
-              </>
-            ) : (
-              <Link className="text-link" href="/sign-in">
-                Sign in <ArrowUpRight size={17} />
-              </Link>
-            )}
-          </div>
-        </div>
         {demo && (
           <div className="demo-banner">
             <span>

@@ -2,13 +2,19 @@ import { test, expect } from '@playwright/test';
 import { fixtureId } from '../../src/lib/fixtures';
 import { mkdir } from 'node:fs/promises';
 
-test('mockup shell, filtering, reservations, messages, and profile persistence', async ({
-  page,
-}) => {
+test('about page, filtering, reservations, messages, and profile persistence', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: 'Small acts. Real change.' })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Service events in your community' }),
+  ).toBeVisible();
+  await expect(page.getByRole('link', { name: 'About', exact: true })).toHaveAttribute(
+    'aria-current',
+    'page',
+  );
+  await expect(page.getByRole('heading', { name: 'Upcoming opportunities' })).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: 'Community service in your area' })).toBeVisible();
   await mkdir('.artifacts', { recursive: true });
   await page.evaluate(() =>
     Promise.all(Array.from(document.images).map((img) => img.decode().catch(() => {}))),
@@ -126,7 +132,9 @@ test('organization creates recurring events and verifies attendance', async ({ p
 test('mobile navigation and forms fit without horizontal overflow', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: 'Small acts. Real change.' })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Service events in your community' }),
+  ).toBeVisible();
   await page.evaluate(() =>
     Promise.all(Array.from(document.images).map((img) => img.decode().catch(() => {}))),
   );
@@ -189,4 +197,117 @@ test('card navigation supports keyboard dismissal and organization destinations'
     'aria-expanded',
     'false',
   );
+});
+
+test('about carousel supports buttons, keyboard, and active-slide focus', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('/');
+  const viewport = page.locator('.about-carousel-viewport');
+  await expect(page.getByRole('button', { name: 'Previous slide', exact: true })).toBeDisabled();
+  await page.getByRole('button', { name: 'Next slide', exact: true }).click();
+  await expect(
+    page.getByRole('heading', { name: 'For volunteers and organizations.' }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Service events in your community' }),
+  ).toBeHidden();
+  await page.getByRole('button', { name: 'Go to slide 3: What can you do?', exact: true }).click();
+  await expect(
+    page.getByRole('heading', { name: 'Plan, participate, and stay connected.' }),
+  ).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Next slide', exact: true })).toBeDisabled();
+  await viewport.focus();
+  await page.keyboard.press('Home');
+  await expect(
+    page.getByRole('heading', { name: 'Service events in your community' }),
+  ).toBeVisible();
+  await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('Tab');
+  await expect(
+    page.getByRole('link', { name: 'Meet the organizations', exact: true }),
+  ).toBeFocused();
+  await viewport.focus();
+  await page.keyboard.press('End');
+  await page.keyboard.press('Tab');
+  await expect(page.getByRole('link', { name: 'Find your next event', exact: true })).toBeFocused();
+  await page.getByRole('button', { name: 'Previous slide', exact: true }).click();
+  await page.evaluate(() => document.fonts.ready);
+  await page.screenshot({ path: '.artifacts/about-audience-desktop.png', fullPage: true });
+});
+
+test('about carousel handles drag, touch swipe, and viewport resizing', async ({ browser }) => {
+  const context = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+    hasTouch: true,
+    isMobile: true,
+  });
+  try {
+    const page = await context.newPage();
+    await page.goto('/');
+    const viewport = page.locator('.about-carousel-viewport');
+    await expect(
+      page.getByRole('heading', { name: 'Service events in your community' }),
+    ).toBeVisible();
+    const box = (await viewport.boundingBox())!;
+    const client = await context.newCDPSession(page);
+    const start = box.x + box.width * 0.8,
+      end = box.x + box.width * 0.2,
+      y = box.y + 95;
+    await client.send('Input.dispatchTouchEvent', {
+      type: 'touchStart',
+      touchPoints: [{ x: start, y }],
+    });
+    for (let step = 1; step <= 8; step++) {
+      await client.send('Input.dispatchTouchEvent', {
+        type: 'touchMove',
+        touchPoints: [{ x: start + ((end - start) * step) / 8, y }],
+      });
+    }
+    await client.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await expect(
+      page.getByRole('button', { name: 'Go to slide 2: Who is it for?', exact: true }),
+    ).toHaveAttribute('aria-current', 'true');
+    await expect
+      .poll(async () => Math.abs((await page.locator('#about-slide-2').boundingBox())!.x - box.x))
+      .toBeLessThan(2);
+    await page.mouse.move(start, y);
+    await page.mouse.down();
+    await page.mouse.move(end, y, { steps: 10 });
+    await page.mouse.up();
+    await expect(
+      page.getByRole('button', { name: 'Go to slide 3: What can you do?', exact: true }),
+    ).toHaveAttribute('aria-current', 'true');
+    for (const width of [320, 768, 1280]) {
+      await page.setViewportSize({ width, height: 900 });
+      await expect
+        .poll(async () => {
+          const current = (await page.locator('#about-slide-3').boundingBox())!;
+          const outer = (await viewport.boundingBox())!;
+          return Math.abs(current.x - outer.x);
+        })
+        .toBeLessThan(2);
+      expect(
+        await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+      ).toBe(true);
+    }
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page
+      .getByRole('button', { name: 'Go to slide 1: What is Turnout?', exact: true })
+      .click();
+    await expect
+      .poll(async () => {
+        const current = (await page.locator('#about-slide-1').boundingBox())!;
+        const outer = (await viewport.boundingBox())!;
+        return Math.abs(current.x - outer.x);
+      })
+      .toBeLessThan(0.1);
+    await page.evaluate(() => document.fonts.ready);
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.screenshot({ path: '.artifacts/about-mobile.png', fullPage: true });
+    await page.getByRole('link', { name: 'Explore opportunities', exact: true }).click();
+    await expect(page).toHaveURL(/\/browse$/);
+  } finally {
+    await context.close();
+  }
 });

@@ -3,10 +3,18 @@
 // See docs/REACT_BITS_LICENSE.md. Uses CSS transitions, Next links, and Lucide icons.
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ArrowUpRight, Plus, Sparkle } from 'lucide-react';
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { ArrowUpRight, Sparkle } from 'lucide-react';
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 
-export function CardNav({ organization, signedIn }: { organization: boolean; signedIn: boolean }) {
+export function CardNav({
+  organization,
+  signedIn,
+  accountControls,
+}: {
+  organization: boolean;
+  signedIn: boolean;
+  accountControls: ReactNode;
+}) {
   const path = usePathname();
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null),
@@ -16,7 +24,7 @@ export function CardNav({ organization, signedIn }: { organization: boolean; sig
     label: organization ? 'Event hub' : 'My events',
   };
   const links = [
-    { href: '/', label: 'Home' },
+    { href: '/', label: 'About' },
     { href: '/browse', label: 'Discover' },
     eventLink,
     { href: '/messages', label: 'Messages' },
@@ -87,7 +95,7 @@ export function CardNav({ organization, signedIn }: { organization: boolean; sig
       }}
     >
       <div className="card-nav-top">
-        <Link href="/" className="brand" aria-label="Turnout home" onClick={() => setOpen(false)}>
+        <Link href="/" className="brand" aria-label="About Turnout" onClick={() => setOpen(false)}>
           <span className="brand-icon">
             <Sparkle size={25} />
           </span>
@@ -107,13 +115,7 @@ export function CardNav({ organization, signedIn }: { organization: boolean; sig
           ))}
         </nav>
         <div className="nav-actions">
-          <Link
-            href={organization ? '/event-hub/new' : signedIn ? '/browse' : '/sign-up'}
-            className="button nav-cta"
-          >
-            {organization ? <Plus size={17} /> : <ArrowUpRight size={18} />}
-            {organization ? 'Create event' : 'Get involved'}
-          </Link>
+          {accountControls}
           <button
             ref={toggle}
             className="nav-toggle"

@@ -3,20 +3,19 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   ArrowRight,
-  Heart,
   MapPin,
   MessageSquare,
   Plus,
   Search,
   SlidersHorizontal,
-  Sparkle,
   Users,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useApp } from './provider';
+import { AboutCarousel } from './about-carousel';
 import { Empty, EventDetail, EventGrid, PageHeading } from './events';
 import { AuthForm, EventForm, GroupForm, ManageEvent, ProfileForm, OnboardingForm } from './forms';
-import { eventPhase, formatDate, hoursServed } from '@/lib/domain';
+import { eventPhase, formatDate } from '@/lib/domain';
 
 export function AppScreen({ route }: { route: string }) {
   const { ready, data } = useApp();
@@ -29,7 +28,7 @@ export function AppScreen({ route }: { route: string }) {
       </div>
     );
   if (data.onboarding || route === '/onboarding') return <OnboardingForm />;
-  if (route === '/') return <Home />;
+  if (route === '/') return <About />;
   if (route === '/browse') return <Browse />;
   if (route === '/events') return <MyEvents />;
   if (route.startsWith('/events/')) return <EventDetail id={route.split('/')[2]} />;
@@ -43,163 +42,17 @@ export function AppScreen({ route }: { route: string }) {
   if (route.startsWith('/event-hub/')) return <ManageEvent id={route.split('/')[2]} />;
   return <AuthForm mode={route === '/sign-up' ? 'sign-up' : 'sign-in'} />;
 }
-function Home() {
-  const { data } = useApp(),
-    profile = data.profile,
-    org = profile?.role === 'organization';
-  const upcoming = data.events
-    .filter((e) => eventPhase(e) === 'upcoming')
-    .sort((a, b) => a.starts_at.localeCompare(b.starts_at));
-  const mine = data.signups.filter((s) => s.volunteer_id === profile?.id && s.status === 'active');
-  const completed = mine.filter((s) => s.verified_minutes !== null && s.verified_minutes > 0);
-  const total = profile ? hoursServed(data.signups, profile.id) : 0;
-  const groups = new Set(
-    completed.map((s) => data.events.find((e) => e.id === s.event_id)?.group_id),
-  ).size;
-  const next = upcoming.find((e) => mine.some((s) => s.event_id === e.id));
-  const ownedEventIds = new Set(
-    data.events
-      .filter((e) => data.groups.some((g) => g.id === e.group_id && g.owner_id === profile?.id))
-      .map((e) => e.id),
-  );
-  const organizationSignups = data.signups.filter((s) => ownedEventIds.has(s.event_id));
+function About() {
   return (
     <>
-      <div className="home-top">
-        <section className="hero">
-          <div className="hero-copy">
-            <span className="welcome">
-              <span className="live-dot" />
-              {profile
-                ? `Welcome back, ${profile.display_name.split(' ')[0]}`
-                : 'A little good starts with you'}
-            </span>
-            <h1>
-              Small acts.
-              <br />
-              Real change.
-            </h1>
-            <p>
-              Find your next way to help, connect with neighbors, and keep every event detail in one
-              place.
-            </p>
-            <Link className="button white hero-button" href="/browse">
-              Explore opportunities <ArrowRight size={20} />
-            </Link>
-          </div>
-          <div className="hero-art" aria-hidden="true">
-            <span className="orbit orbit-one" />
-            <span className="orbit orbit-two" />
-            <div className="people-stamp">
-              <Users size={76} />
-              <span>
-                better
-                <br />
-                together.
-              </span>
-            </div>
-            <span className="art-sparkle">
-              <Sparkle size={42} />
-            </span>
-            <span className="art-note">
-              a little time.
-              <br />a lot of good.
-            </span>
-          </div>
-        </section>
-        <section className="impact-card">
-          <div className="impact-heading">
-            <div>
-              <p className="eyebrow">YOUR IMPACT</p>
-              <h2>{org ? 'Good starts here' : 'Your good adds up'}</h2>
-            </div>
-            <span className="sparkle-box">
-              <Sparkle size={22} />
-            </span>
-          </div>
-          <div className="stats">
-            {org ? (
-              <>
-                <Stat
-                  value={
-                    data.events.filter((e) =>
-                      data.groups.some((g) => g.id === e.group_id && g.owner_id === profile.id),
-                    ).length
-                  }
-                  label="Events"
-                />
-                <Stat
-                  value={organizationSignups.filter((s) => s.status === 'active').length}
-                  label="Sign-ups"
-                />
-                <Stat
-                  value={
-                    organizationSignups.reduce((n, s) => n + (s.verified_minutes ?? 0), 0) / 60
-                  }
-                  label="Hours given"
-                />
-              </>
-            ) : (
-              <>
-                <Stat value={total} label="Hours" />
-                <Stat value={completed.length} label="Events" />
-                <Stat value={groups} label="Groups" />
-              </>
-            )}
-          </div>
-          <div className="next-good">
-            <div>
-              <strong>
-                {next
-                  ? 'Your next good thing'
-                  : org
-                    ? 'Bring people together'
-                    : 'Your next chapter'}
-              </strong>
-              <Heart size={16} />
-            </div>
-            <p>
-              {next
-                ? next.title
-                : org
-                  ? 'A shared purpose starts with a simple invitation.'
-                  : 'Find a cause you care about. We’ll help you show up.'}
-            </p>
-            <Link href={next ? `/events/${next.id}` : org ? '/event-hub/new' : '/browse'}>
-              {next
-                ? `${formatDate(next.starts_at)} · ${formatDate(next.starts_at, undefined, 'h:mm a')}`
-                : org
-                  ? 'Create an opportunity'
-                  : 'Discover an opportunity'}{' '}
-              <ArrowRight size={15} />
-            </Link>
-          </div>
-        </section>
-      </div>
-      <section className="opportunities">
-        <div className="section-heading">
-          <div>
-            <p className="eyebrow">NEAR YOU</p>
-            <h2>Upcoming opportunities</h2>
-          </div>
-          <Link href="/browse" className="text-link">
-            View all <ArrowRight size={17} />
-          </Link>
-        </div>
-        {upcoming.length ? (
-          <EventGrid events={upcoming.slice(0, 3)} />
-        ) : (
-          <Empty title="Good things are on the way">
-            <p>Check back soon for new opportunities.</p>
-          </Empty>
-        )}
-      </section>
+      <h1 className="sr-only">About Turnout</h1>
+      <AboutCarousel />
       <section className="community-strip">
         <span className="sparkle-box">
           <Users />
         </span>
         <div>
-          <h3>Good people. Shared purpose.</h3>
+          <h2>Community service in your area</h2>
           <p>Meet the organizations making a difference in your neighborhood.</p>
         </div>
         <Link className="text-link" href="/community">
@@ -207,14 +60,6 @@ function Home() {
         </Link>
       </section>
     </>
-  );
-}
-function Stat({ value, label }: { value: number; label: string }) {
-  return (
-    <div>
-      <strong>{Number.isInteger(value) ? value : value.toFixed(1)}</strong>
-      <span>{label}</span>
-    </div>
   );
 }
 function Browse() {

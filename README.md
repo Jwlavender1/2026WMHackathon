@@ -1,6 +1,6 @@
 # Turnout
 
-**Do good, together.** A community volunteering platform for the Year of Civic Leadership hackathon. Turnout pairs a Dongle wordmark with Poppins interface typography, a purple/yellow theme, and expandable top navigation.
+**Do good, together.** A community volunteering platform for the Year of Civic Leadership hackathon. Turnout pairs a Dongle wordmark with Poppins interface typography, a purple/yellow theme, expandable top navigation, and an informational About carousel.
 
 ## Start here
 

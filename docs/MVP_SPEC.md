@@ -91,8 +91,8 @@ Mutations return success data or a user-visible error. Database-shaped TypeScrip
 
 ## 6. UI and routes
 
-    RootLayout → AppProvider → AppShell (CardNav top navigation, search, account controls)
-    /                         Photo hero, verified impact, upcoming opportunities
+    RootLayout → AppProvider → AppShell (CardNav top navigation and account controls)
+    /                         About Turnout: responsive informational carousel + community link
     /sign-in, /sign-up         Auth0 entry point, or local demo account flow
     /onboarding               One-time role/profile form after Auth0 login
     /browse                   SearchFilters + paginated EventGrid
@@ -107,11 +107,15 @@ Mutations return success data or a user-visible error. Database-shaped TypeScrip
     /messages                 Authorized event conversation list
     /community                Organization directory
 
-Turnout uses **primary #CE93D8 (purple)** and **secondary #FFF59D (yellow)**, with dark plum text and light backgrounds. **Dongle is reserved for the logo. Poppins is used throughout the application**, including headings, navigation, body copy, forms, and numbers. Both fonts are bundled locally, with a system sans serif fallback. Heading sizes, weights, and line spacing are restrained for a calmer business-oriented interface. The home hero uses a community graphic.
+Turnout uses **primary #CE93D8 (purple)** and **secondary #FFF59D (yellow)**, with dark plum text and light backgrounds. **Dongle is reserved for the logo. Poppins is used throughout the application**, including headings, navigation, body copy, forms, and numbers. Both fonts are bundled locally, with a system sans serif fallback. Heading sizes, weights, and line spacing are restrained for a calmer business-oriented interface.
 
-The sidebar is replaced by top navigation. Direct desktop links and an expandable three-card menu retain Home, Discover, My events/Event hub, Messages, Community, My group for organizers, and profile access. The interaction is adapted from [React Bits Card Nav](https://www.reactbits.dev/components/card-nav), using CSS transitions with reduced-motion support, a semantic disclosure button, inactive hidden links, Escape-to-close, and mobile layouts. The demo role selector lives above the main content.
+The sidebar is replaced by top navigation. Direct desktop links and an expandable three-card menu provide About, Discover, My events/Event hub, Messages, Community, My group for organizers, and profile access. The interaction is adapted from [React Bits Card Nav](https://www.reactbits.dev/components/card-nav), using CSS transitions with reduced-motion support, a semantic disclosure button, inactive hidden links, Escape-to-close, and mobile layouts. The demo role selector lives above the main content.
 
-Impact shows real all-time totals and the next registered event; monthly goal/unread values are not fabricated. Loading/empty/error/access states, labeled controls, keyboard focus, and responsive layouts are included. Font and component attribution is in [Design sources](DESIGN_SOURCES.md).
+The top bar contains navigation, account controls, and the card-menu toggle, without a separate Get involved/Create event CTA or global search bar. Discovery filters remain on Discover; event creation remains accessible from Event hub and the expanded menu.
+
+The root route is now **About**, replacing the former Home dashboard. A [React Bits Carousel](https://www.reactbits.dev/components/carousel) adaptation presents three cards: what Turnout is, who it serves, and what users can do. The first card reads **Service events in your community**. The carousel fits the available page width, supports drag/swipe, arrows, indicators, and keyboard navigation, honors reduced motion, and does not autoplay. Offscreen cards cannot receive focus. Personal impact and upcoming opportunities are removed from this page; verified hours remain on Profile, and event discovery remains on Discover. The community strip reads **Community service in your area** and links to the organization directory.
+
+Loading/empty/error/access states, labeled controls, keyboard focus, and responsive layouts are included. Font and component attribution is in [Design sources](DESIGN_SOURCES.md).
 
 The AI recommendation is retained separately in [AI feature plan](AI_FEATURE_PLAN.md). Event drafting and pasted-announcement extraction are deferred while the team updates the UI.
 
