@@ -37,6 +37,7 @@ export type Event = {
   ends_at: string;
   timezone: string;
   resources_to_bring: string[];
+  categories?: string[];
   status: 'published' | 'cancelled';
   location?: Location | null;
 };

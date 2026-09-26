@@ -17,7 +17,7 @@ function pool() {
 }
 export async function databaseReady() {
   const result = await pool().query<{ ready: boolean }>(
-    "SELECT to_regprocedure('public.app_snapshot()') IS NOT NULL AND to_regprocedure('private.app_command_v1(text,jsonb)') IS NOT NULL AS ready",
+    "SELECT to_regprocedure('public.app_snapshot()') IS NOT NULL AND to_regprocedure('private.app_command_v2(text,jsonb)') IS NOT NULL AS ready",
   );
   if (!result.rows[0].ready) throw new Error('Database migrations are required.');
 }

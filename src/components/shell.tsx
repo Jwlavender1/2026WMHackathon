@@ -2,7 +2,8 @@
 /* eslint-disable @next/next/no-img-element */
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ArrowUpRight, LogOut, Sparkle, X } from 'lucide-react';
+import { ArrowUpRight, LogOut, X } from 'lucide-react';
+import { BrandMark } from './brand-mark';
 import { useApp } from './provider';
 import { CardNav } from './card-nav';
 import { PublicHeader, PublicFooter } from './landing';
@@ -48,9 +49,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </a>
         <header className="onboarding-header">
           <Link href="/" className="brand" aria-label="Turnout">
-            <span className="brand-icon">
-              <Sparkle size={25} />
-            </span>
+            <BrandMark />
             <span>
               turnout<span className="brand-period">.</span>
             </span>
@@ -140,7 +139,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <footer className="footer">
           <span>Small acts for big change.</span>
           <span>
-            Made for our community <Sparkle size={15} />
+            Made for our community <BrandMark compact />
           </span>
         </footer>
       </div>

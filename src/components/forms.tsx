@@ -31,9 +31,9 @@ export function ProfileForm() {
       {p && (
         <>
           <PageHeading
-            eyebrow="THIS IS YOUR GOOD"
+            eyebrow="ACCOUNT MANAGEMENT"
             title="Your profile"
-            description="A little about you. A growing story of the difference you make."
+            description="Some context about yourself."
           />
           <div className="profile-grid">
             <section className="panel">
@@ -275,10 +275,12 @@ export function EventForm({ event }: { event?: Event }) {
             className="event-form"
             onSubmit={async (e) => {
               e.preventDefault();
-              const form = Object.fromEntries(new FormData(e.currentTarget));
+              const values = new FormData(e.currentTarget);
+              const form = Object.fromEntries(values);
               if (
                 await act(event ? 'update_event' : 'create_event', {
                   ...form,
+                  categories: values.getAll('categories'),
                   tasks,
                   event_id: event?.id,
                   task_ids: existing.map((t) => t.id),
@@ -319,6 +321,11 @@ export function EventForm({ event }: { event?: Event }) {
                   label="Event city / town"
                 />
               </div>
+              <CauseFields
+                name="categories"
+                initial={event?.categories}
+                legend="Event categories (optional)"
+              />
               <Field
                 label="Address / meeting point"
                 name="address"

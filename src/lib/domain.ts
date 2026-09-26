@@ -64,6 +64,7 @@ export const eventSchema = z
     timezone: z.string().default('America/New_York'),
     duration: z.coerce.number().int().min(15).max(720),
     resources: z.string().max(1000),
+    categories: interestsSchema,
     interval: z.coerce.number().int().min(0).max(2),
     count: z.coerce.number().int().min(1).max(12),
     tasks: z

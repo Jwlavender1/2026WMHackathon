@@ -79,6 +79,11 @@ export const CAUSES = [
   'Environment',
   'Health',
   'Housing',
+  'Gift-making',
+  'Clothing',
+  'Letter writing',
+  'Religious',
+  'Campaign',
   'Community support',
 ] as const;
 export const interestsSchema = z.array(z.enum(CAUSES)).max(CAUSES.length).default([]);

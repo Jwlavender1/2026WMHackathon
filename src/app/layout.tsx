@@ -6,7 +6,8 @@ import { AppProvider } from '@/components/provider';
 import { AppShell } from '@/components/shell';
 import './globals.css';
 export const metadata: Metadata = {
-  title: 'Turnout — Do good, together',
+  title: 'Turnout',
+  icons: { icon: '/turnout_logo.png', apple: '/turnout_logo.png' },
   description:
     'Find your next way to help. Community volunteer events, meaningful connections, and all the details in one place.',
 };

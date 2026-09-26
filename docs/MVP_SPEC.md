@@ -4,6 +4,8 @@
 
 Team guides: [Local development](LOCAL_DEVELOPMENT.md) · [Git workflow](TEAM_WORKFLOW.md) · [Auth0/DigitalOcean setup](AUTH0_DIGITALOCEAN_HANDOFF.md) / [Onboarding and location rollout](ONBOARDING.md).
 
+Category selections and migration 003 are documented in [Categories](CATEGORIES.md). Profiles, groups, and events share the approved eleven-category list. Event descriptors are selected by the organizer rather than inferred from the title; existing events remain uncategorized until edited.
+
 ## 1. Product contract
 
 An organization publishes opportunities; a volunteer discovers an event, reserves a task, coordinates with participants, and receives organizer-verified service hours.
@@ -115,6 +117,10 @@ Mutations return success data or a user-visible error. Database-shaped TypeScrip
     /community                Organization directory
 
 Turnout uses **primary #CE93D8 (purple)** and **secondary #FFF59D (yellow)**, with dark plum text and light backgrounds. **Dongle is reserved for the logo. Poppins is used throughout the application**, including headings, navigation, body copy, forms, and numbers. Both fonts are bundled locally, with a system sans serif fallback. Heading sizes, weights, and line spacing are restrained for a calmer business-oriented interface.
+
+Event listings use simple text tiles without photos, date badges, or category badges. The organizing group is the larger top link, followed by the event title, location, full date, time/time zone, availability, and registration/recurrence status. About carousel slides use subtle purple-to-deeper-purple, yellow-to-orange, and dark-to-lighter-purple gradients; navigation-menu cards retain their existing colors.
+
+The supplied `public/turnout_logo.png` replaces the sparkle brand mark in public, app, and onboarding headers and the app footer, and supplies the browser icon. The Dongle wordmark remains beside it. Event-detail headers use text and explicit category labels, with no stock event photos.
 
 The sidebar is replaced by top navigation. Direct desktop links and an expandable three-card menu provide About, Discover, My events/Event hub, Messages, Community, My group for organizers, and profile access. The interaction is adapted from [React Bits Card Nav](https://www.reactbits.dev/components/card-nav), using CSS transitions with reduced-motion support, a semantic disclosure button, inactive hidden links, Escape-to-close, and mobile layouts. The demo role selector lives above the main content.
 

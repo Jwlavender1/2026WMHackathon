@@ -32,7 +32,7 @@ export function AppScreen({ route }: { route: string }) {
   if (!ready)
     return (
       <div className="loading-shell" role="status">
-        <span className="eyebrow">DO GOOD, TOGETHER</span>
+        <span className="eyebrow">SMALL ACTS FOR BIG CHANGE</span>
         <h1>A little good is on its way…</h1>
         <div className="skeleton" />
       </div>
@@ -110,7 +110,7 @@ function Browse() {
       <PageHeading
         eyebrow="FIND YOUR WAY TO GIVE BACK"
         title="A cause for everyone."
-        description="A few hours. A meaningful connection. A stronger community."
+        description="Browse opportunities in your area."
       />
       <p className="muted">
         {useSavedCity ? (
@@ -437,8 +437,8 @@ function Community({ slug }: { slug?: string }) {
     <>
       <PageHeading
         eyebrow="ROOTED IN YOUR NEIGHBORHOOD"
-        title="Good happens together."
-        description="Get to know the organizations showing up for our community."
+        title="Browse organizations"
+        description="Get to know the organizations showing up in your community."
       />
       <div className="group-grid">
         {data.groups.map((g) => (

@@ -3,7 +3,8 @@
 // See docs/REACT_BITS_LICENSE.md. Uses CSS transitions, Next links, and Lucide icons.
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ArrowUpRight, Sparkle } from 'lucide-react';
+import { ArrowUpRight } from 'lucide-react';
+import { BrandMark } from './brand-mark';
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 
 export function CardNav({
@@ -39,8 +40,8 @@ export function CardNav({
       links: [links[0], links[1], links[4]],
     },
     {
-      title: organization ? 'Make it happen.' : 'Show up. Do good.',
-      caption: organization ? 'Bring your community together.' : 'A little time goes a long way.',
+      title: organization ? 'Make it happen.' : "See what's upcoming.",
+      caption: organization ? 'Bring your community together.' : 'Logistics now, service later.',
       className: 'yellow',
       links: [
         eventLink,
@@ -96,9 +97,7 @@ export function CardNav({
     >
       <div className="card-nav-top">
         <Link href="/" className="brand" aria-label="About Turnout" onClick={() => setOpen(false)}>
-          <span className="brand-icon">
-            <Sparkle size={25} />
-          </span>
+          <BrandMark />
           <span>
             turnout<span className="brand-period">.</span>
           </span>

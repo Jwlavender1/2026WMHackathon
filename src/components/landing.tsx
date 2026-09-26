@@ -9,19 +9,17 @@ import {
   Clock3,
   MapPin,
   MessageSquare,
-  Sparkle,
   Users,
 } from 'lucide-react';
 import { useApp } from './provider';
+import { BrandMark } from './brand-mark';
 import styles from './landing.module.css';
 
 export function PublicHeader() {
   return (
     <header className={styles.header}>
       <Link href="/" className={`brand ${styles.brand}`} aria-label="Turnout home">
-        <span className="brand-icon">
-          <Sparkle size={25} />
-        </span>
+        <BrandMark />
         <span>
           turnout<span className="brand-period">.</span>
         </span>

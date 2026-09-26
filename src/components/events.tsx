@@ -1,5 +1,4 @@
 'use client';
-/* eslint-disable @next/next/no-img-element */
 import Link from 'next/link';
 import {
   ArrowLeft,
@@ -21,28 +20,6 @@ import { eventPhase, formatDate, initials } from '@/lib/domain';
 import type { Event } from '@/lib/types';
 import { shortLocation } from '@/lib/location';
 
-export const photos = {
-  food: '/images/volunteers.jpg',
-  books: '/images/library.jpg',
-  reading: '/images/reading.jpg',
-  meal: '/images/kitchen.jpg',
-};
-export function eventPhoto(event: Event) {
-  return /Reading/.test(event.title)
-    ? photos.reading
-    : /Book/.test(event.title)
-      ? photos.books
-      : /Meal/.test(event.title)
-        ? photos.meal
-        : photos.food;
-}
-export function category(event: Event) {
-  return /Library|Book|Reading/i.test(event.title)
-    ? 'Education'
-    : /Pantry|Meal|Neighbors/i.test(event.title)
-      ? 'Food access'
-      : 'Community';
-}
 export function Empty({ title, children }: { title: string; children?: React.ReactNode }) {
   return (
     <div className="empty">
@@ -87,51 +64,48 @@ export function EventCard({ event }: { event: Event }) {
     );
   return (
     <article className="event-card">
-      <Link
-        href={`/events/${event.id}`}
-        className="event-image-link"
-        tabIndex={-1}
-        aria-hidden="true"
-      >
-        <img src={eventPhoto(event)} alt="" className="event-image" />
-        <span className="date-badge">
-          <small>{formatDate(event.starts_at, event.timezone, 'MMM')}</small>
-          <strong>{formatDate(event.starts_at, event.timezone, 'd')}</strong>
-        </span>
-        <span className={`cause-badge ${category(event) === 'Education' ? 'education' : ''}`}>
-          {category(event)}
-        </span>
-        {joined && (
-          <span className="joined-badge">
-            <Check size={13} /> Going
-          </span>
-        )}
-      </Link>
       <div className="event-card-body">
+        {group && (
+          <Link className="organizer" href={`/groups/${group.slug}`}>
+            {group.name}
+          </Link>
+        )}
         <Link className="card-title" href={`/events/${event.id}`}>
           <h3>{event.title}</h3>
         </Link>
-        <p className="organizer">{group?.name}</p>
         <div className="event-meta">
           <span>
-            <MapPin size={15} />
+            <MapPin size={16} aria-hidden="true" />
             {shortLocation(event)}
           </span>
           <span>
-            <Clock3 size={15} />
+            <CalendarDays size={16} aria-hidden="true" />
+            <time dateTime={event.starts_at}>
+              {formatDate(event.starts_at, event.timezone, 'ccc, MMM d, yyyy')}
+            </time>
+          </span>
+          <span>
+            <Clock3 size={16} aria-hidden="true" />
             {formatDate(event.starts_at, event.timezone, 'h:mm a')} –{' '}
-            {formatDate(event.ends_at, event.timezone, 'h:mm a')}
+            {formatDate(event.ends_at, event.timezone, 'h:mm a ZZZZ')}
           </span>
         </div>
         <div className="card-footer">
-          <span>
-            {eventPhase(event) === 'upcoming'
-              ? `${count} spots open`
-              : eventPhase(event) === 'previous'
-                ? 'Completed'
-                : eventPhase(event) === 'cancelled'
-                  ? 'Cancelled'
-                  : 'Happening now'}
+          <span className="event-availability">
+            <span>
+              {eventPhase(event) === 'upcoming'
+                ? `${count} spots open`
+                : eventPhase(event) === 'previous'
+                  ? 'Completed'
+                  : eventPhase(event) === 'cancelled'
+                    ? 'Cancelled'
+                    : 'Happening now'}
+            </span>
+            {joined && (
+              <span className="event-going">
+                <Check size={14} aria-hidden="true" /> Going
+              </span>
+            )}
           </span>
           {event.series_id ? (
             <span className="recurring">
@@ -178,9 +152,10 @@ export function EventDetail({ id }: { id: string }) {
         <ArrowLeft size={16} /> All opportunities
       </Link>
       <div className="detail-cover">
-        <img src={eventPhoto(event)} alt="" />
         <div>
-          <span className="cause-badge">{category(event)}</span>
+          {!!event.categories?.length && (
+            <p className="event-categories">{event.categories.join(' \u00b7 ')}</p>
+          )}
           <h1>{event.title}</h1>
           <Link href={`/groups/${group?.slug}`}>
             {group?.name} <ArrowRight size={15} />

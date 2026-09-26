@@ -82,6 +82,7 @@ export function demoCommand(
       city: demoLocation(form.location_id).city,
       location: demoLocation(form.location_id),
       timezone: form.timezone,
+      categories: form.categories,
       resources_to_bring: form.resources
         .split(',')
         .map((s) => s.trim())

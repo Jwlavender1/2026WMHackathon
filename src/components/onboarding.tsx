@@ -34,6 +34,10 @@ export function CauseFields({
           </label>
         ))}
       </div>
+      <p className="category-help">
+        Community support covers other service activities. Campaign includes community awareness,
+        donation drives, and political campaigning.
+      </p>
     </fieldset>
   );
 }

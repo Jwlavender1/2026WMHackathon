@@ -16,6 +16,7 @@ const form = {
   timezone: 'America/New_York',
   duration: 120,
   resources: 'Water',
+  categories: [],
   interval: 1,
   count: 3,
   tasks: [{ name: 'Pack bags', capacity: 4, description: '' }],

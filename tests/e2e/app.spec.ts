@@ -212,6 +212,8 @@ test('organization creates recurring events and verifies attendance', async ({ p
   await page.getByRole('link', { name: 'Event hub', exact: true }).click();
   await page.getByRole('link', { name: 'Create event', exact: true }).last().click();
   await page.getByLabel('Event title', { exact: true }).fill('Saturday Community Care');
+  await page.getByRole('checkbox', { name: 'Gift-making', exact: true }).check();
+  await page.getByRole('checkbox', { name: 'Campaign', exact: true }).check();
   await page
     .getByLabel('Description', { exact: true })
     .fill('Pack supplies and meet neighbors at the community center.');
@@ -224,6 +226,23 @@ test('organization creates recurring events and verifies attendance', async ({ p
   await expect(
     page.getByRole('heading', { name: 'Saturday Community Care', exact: true }),
   ).toHaveCount(3);
+  await page
+    .locator('.event-table-row')
+    .filter({ hasText: 'Saturday Community Care' })
+    .first()
+    .getByRole('link', { name: 'Manage', exact: true })
+    .click();
+  await expect(page.getByRole('checkbox', { name: 'Gift-making', exact: true })).toBeChecked();
+  await expect(page.getByRole('checkbox', { name: 'Campaign', exact: true })).toBeChecked();
+  await page.getByRole('checkbox', { name: 'Campaign', exact: true }).uncheck();
+  await page.getByRole('checkbox', { name: 'Letter writing', exact: true }).check();
+  await page.getByRole('button', { name: 'Save changes', exact: true }).click();
+  await expect(page.locator('.event-categories')).toContainText('Gift-making');
+  await expect(page.locator('.event-categories')).toContainText('Letter writing');
+  await expect(page.locator('.event-categories')).not.toContainText('Campaign');
+  await page.reload();
+  await expect(page.locator('.event-categories')).toContainText('Letter writing');
+  await page.getByRole('link', { name: 'Event hub', exact: true }).click();
   await page.getByRole('tab', { name: 'Previous events' }).click();
   await page.getByRole('link', { name: 'Record attendance' }).click();
   await page.getByRole('spinbutton', { name: 'Minutes served by Maya King' }).fill('60');
