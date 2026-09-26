@@ -92,6 +92,9 @@ export type DemoState = Snapshot & {
   series: Series[];
   pendingUserId?: string;
 };
+export function emptySnapshot(): Snapshot {
+  return { profile: null, groups: [], events: [], tasks: [], signups: [], comments: [] };
+}
 export function authenticationState(data: Snapshot): 'signed_out' | 'onboarding' | 'ready' {
   return data.profile ? 'ready' : data.onboarding ? 'onboarding' : 'signed_out';
 }

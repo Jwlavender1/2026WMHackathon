@@ -10,17 +10,25 @@ import {
   SlidersHorizontal,
   Users,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useApp } from './provider';
 import { AboutCarousel } from './about-carousel';
+import { LandingPage } from './landing';
 import { Empty, EventDetail, EventGrid, PageHeading } from './events';
 import { AuthForm, EventForm, GroupForm, ManageEvent, ProfileForm } from './forms';
 import { OnboardingForm } from './onboarding';
-import { shortLocation } from '@/lib/location';
+import { sameCity, shortLocation } from '@/lib/location';
+import { authenticationState } from '@/lib/types';
+import { isPublicPage } from '@/lib/access';
 import { eventPhase, formatDate } from '@/lib/domain';
 
 export function AppScreen({ route }: { route: string }) {
   const { ready, data } = useApp();
+  const router = useRouter();
+  const signedOut = authenticationState(data) === 'signed_out';
+  useEffect(() => {
+    if (ready && signedOut && !isPublicPage(route)) router.replace('/');
+  }, [ready, signedOut, route, router]);
   if (!ready)
     return (
       <div className="loading-shell" role="status">
@@ -29,6 +37,11 @@ export function AppScreen({ route }: { route: string }) {
         <div className="skeleton" />
       </div>
     );
+  if (signedOut) {
+    if (route === '/sign-in' || route === '/sign-up')
+      return <AuthForm mode={route === '/sign-up' ? 'sign-up' : 'sign-in'} />;
+    return <LandingPage />;
+  }
   if (data.onboarding || route === '/onboarding') return <OnboardingForm />;
   if (route === '/') return <About />;
   if (route === '/browse') return <Browse />;
@@ -69,7 +82,8 @@ function Browse() {
     params = useSearchParams(),
     router = useRouter();
   const q = params.get('q') ?? '',
-    city = params.get('city') ?? '',
+    useSavedCity = !params.has('city'),
+    city = params.get('city') ?? (data.profile?.location ? shortLocation(data.profile) : ''),
     group = params.get('group') ?? '',
     task = params.get('task') ?? '',
     page = Math.max(1, Number(params.get('page')) || 1);
@@ -81,7 +95,9 @@ function Browse() {
           `${e.title} ${e.description} ${e.city} ${data.groups.find((g) => g.id === e.group_id)?.name}`
             .toLowerCase()
             .includes(q.toLowerCase())) &&
-        (!city || shortLocation(e).toLowerCase().includes(city.toLowerCase())) &&
+        (useSavedCity
+          ? sameCity(e.location, data.profile?.location)
+          : !city || shortLocation(e).toLowerCase().includes(city.toLowerCase())) &&
         (!group || e.group_id === group) &&
         (!task ||
           data.tasks.some(
@@ -96,15 +112,37 @@ function Browse() {
         title="A cause for everyone."
         description="A few hours. A meaningful connection. A stronger community."
       />
+      <p className="muted">
+        {useSavedCity ? (
+          data.profile?.location ? (
+            <>
+              Showing events in {shortLocation(data.profile)}. Change the location filter to search
+              elsewhere.
+            </>
+          ) : (
+            <>
+              Confirm your city in{' '}
+              <Link className="text-link" href="/profile">
+                your profile
+              </Link>{' '}
+              to see local events, or enter a location below.
+            </>
+          )
+        ) : city ? (
+          <>Showing events matching {city}.</>
+        ) : (
+          'Showing all locations.'
+        )}
+      </p>
       <form
-        key={params.toString()}
+        key={`${params.toString()}:${data.profile?.id}:${data.profile?.location?.id}`}
         className="filter-panel"
         onSubmit={(e) => {
           e.preventDefault();
           const values = new FormData(e.currentTarget),
             next = new URLSearchParams();
           values.forEach((v, k) => {
-            if (v) next.set(k, String(v));
+            if (v || k === 'city') next.set(k, String(v));
           });
           router.push(`/browse?${next}`);
         }}

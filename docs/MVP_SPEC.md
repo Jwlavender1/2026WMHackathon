@@ -11,7 +11,8 @@ An organization publishes opportunities; a volunteer discovers an event, reserve
 - Two fixed account roles: volunteer and organization. Auth0 handles login; first-login onboarding sets the application role once. Organization means the group's owner/operator, not an Auth0 Organizations subscription feature.
 - Volunteers manage display name, photo, biography, selected city/state/country, skills, cause interests, and see derived service hours.
 - Organization onboarding atomically creates the profile and its one group, collecting contact name, organization name/description, and selected location; website, public contact email, and cause categories are optional. Each organization account manages its group details, events, tasks, attendees, and attendance. Multiple staff accounts and group membership are deferred.
-- Visitors can browse public event/group pages and share URLs. Reservations and threads require authentication and an appropriate account.
+- Signed-out visitors see a dedicated landing page with sign-in/account creation. Discover, event/group pages, profiles, and all other app screens require authentication. Direct signed-out visits to these routes redirect to `/`.
+- Discover initially matches the profile's confirmed city, state, and country. It does not infer a location or show nationwide results when that city has no events. Users can explicitly change the location filter or clear it to search all locations. This is city matching, not a distance-radius search.
 - One active task reservation per volunteer per occurrence. No waitlists, payments, donations, or resource inventory.
 - Messages lists authorized event conversations; Community lists groups. Threads are persistent text comments, with five-second polling while visible. No direct messages or attachments.
 - No event email ingestion, streaming, digests, reminders, or email-to-thread replies in this MVP. Auth0 handles its configured account emails.
@@ -31,7 +32,7 @@ An organization publishes opportunities; a volunteer discovers an event, reserve
 | Validation     | Zod plus PostgreSQL constraints and authorized functions                        |
 | Checks         | TypeScript, ESLint, PGlite database/domain tests, Playwright demo flows         |
 
-APP_MODE=demo is the default and stores fictional fixtures in browser localStorage, with a visible banner and account switcher. APP_MODE=live requires Auth0 and a migrated PostgreSQL database; it fails on missing configuration. The local demo is not shared authentication or a multiuser database.
+APP_MODE=demo is the default and stores fictional fixtures in browser localStorage. Fresh visitors start signed out; demo sign-in selects a sample account. The signed-in workspace has a visible banner and account switcher. APP_MODE=live requires Auth0 and a migrated PostgreSQL database for app data. The anonymous landing page does not query the database. The local demo is not shared authentication or a multiuser database.
 
 Supabase dependencies and the old provider-specific migration have been removed. The team has $200 DigitalOcean credits; a teammate owns provisioning and spending. No cloud resources have been created by this implementation. Avatars stay in PostgreSQL to avoid requiring another service; object storage can replace this when scale warrants it.
 
@@ -58,7 +59,7 @@ Structured location stores provider/place ID, city, state code, country code, an
 
 Migration 002 has been applied to the team's DigitalOcean database, with matching migration checksums, unchanged existing record counts, and a passing live health check. The updated onboarding interface still requires publishing and deploying this application version.
 
-Indexes cover event status/start/id, group/start, normalized city, signup task/status and volunteer, and event comment timestamp/id. Filtering remains a small-data substring match rather than geospatial search.
+Indexes cover event status/start/id, group/start, normalized city, signup task/status and volunteer, and event comment timestamp/id. Initial discovery uses exact city/state/country matching; explicit search filters use small-data substring matching. Legacy records without a confirmed location are excluded from the initial local results but remain findable through explicit searches.
 
 ## 4. Integrity and access rules
 
@@ -68,7 +69,7 @@ Indexes cover event status/start/id, group/start, normalized city, signup task/s
 - **Lifecycle:** upcoming means published and not started; ongoing means started but not ended; previous means ended. Cancelled has its own dashboard tab. Cancellation keeps history but closes reservations/messages and disallows attendance verification. Completed event times/tasks are immutable.
 - **Editor:** before the start, edit title, description, venue/address/city, resources, time/duration, and capacities. Task identities/names remain stable after creation. Capacity cannot fall below active reservations. Automated change notifications are deferred.
 - **Threads:** only the event owner and active registered volunteers may read, including after completion/cancellation. Posting closes at cancellation or 24 hours after the end. Authors can hide their own messages; owners can hide messages in their events. Hidden body content is removed from subsequent reads.
-- **Public data:** group/event/task details and aggregate availability only. Only the separately entered organization public contact email is public. Auth0 account email, subject identifiers, unrelated profiles, attendee identities, and other group owner IDs stay private. Attendee reads are scoped to self/owning organization.
+- **App data:** signed-out HTTP requests receive an empty snapshot; live page routes and snapshot reads check the Auth0 session on the server. Signed-in users can browse group/event/task details and aggregate availability. Only the separately entered organization contact email is shared. Auth0 account email, subject identifiers, unrelated profiles, attendee identities, and other group owner IDs stay private. Attendee reads are scoped to self/owning organization. The existing SQL projection remains internal behind server-held credentials; this access change needs no new migration.
 - **Authorization:** no database credentials in the browser. The server verifies Auth0 sessions, resolves the subject to an internal UUID, and sets that UUID with transaction-local set_config on the same pooled connection used for the request. Every transaction clears context first and commits or rolls back before release. A separate commonly_runtime role has read policies and authorized function execution, with no direct table mutation rights. The application login must not own the schema or bypass RLS.
 - **Images:** server validates byte signatures/MIME and size. SQL limits storage and restricts reads to the owner. GET /api/avatar uses authenticated private, no-store responses; the client cannot request another user's avatar by supplying an ID.
 
@@ -79,7 +80,7 @@ Database enforcement is in [001_foundation.sql](../database/migrations/001_found
 | Interface                                 | Behavior                                                                                                                                 |
 | ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
 | /auth/login, /auth/callback, /auth/logout | Auth0 SDK routes through proxy.ts; application does not collect live passwords                                                           |
-| readSnapshot()                            | Authorized server read of public records and the user's scoped profile/reservations/comments; indicates first-login onboarding if needed |
+| readSnapshot()                            | Empty snapshot without an Auth0 session; otherwise reads app records and the user's scoped profile/reservations/comments, with first-login onboarding if needed |
 | runCommand(kind, input)                   | Validates each command's Zod schema and invokes app_command in an authenticated user transaction                                         |
 | onboard                                   | One-time role, name and verified location plus role-specific fields; organization group created atomically                               |
 | profile / group                           | Edit own profile; create/update own organization group                                                                                   |
@@ -91,15 +92,15 @@ Database enforcement is in [001_foundation.sql](../database/migrations/001_found
 | GET /api/locations?q=...                  | Authenticated live US city suggestions, signed selection proofs; fixed examples in demo mode                                             |
 | GET /api/health                           | Mode/configuration check; live mode also checks PostgreSQL reachability and migration function presence                                  |
 
-Public pages load through Server Components into a shared client snapshot. For hackathon-sized data, discovery combines keyword/city-or-state-code/group/task with AND, orders by start time/id, and displays 20 records per page. Filters are in URL parameters. Threads show 50 messages at a time. Replace snapshot reads with database filtering/cursors when data volume grows.
+Authenticated app pages load through Server Components into a shared client snapshot. For hackathon-sized data, discovery combines keyword/location/group/task with AND, orders by start time/id, and displays 20 records per page. Without an explicit location filter it uses the profile's confirmed city and state. Filters are in URL parameters. Threads show 50 messages at a time. Replace snapshot reads with database filtering/cursors when data volume grows.
 
 Mutations return success data or a user-visible error. Database-shaped TypeScript models are hand-maintained alongside migrations. An independent REST service, ORM, queue, and WebSocket server are unnecessary for this scope.
 
 ## 6. UI and routes
 
     RootLayout → AppProvider → AppShell (CardNav top navigation and account controls)
-    /                         About Turnout: responsive informational carousel + community link
-    /sign-in, /sign-up         Auth0 entry point, or local demo account flow
+    /                         Signed-out landing page; About carousel for completed accounts
+    /sign-in, /sign-up         Centered Auth0 entry panel, or local demo account flow
     /onboarding               Dedicated two-step role/details flow; no CardNav or footer
     /browse                   SearchFilters + paginated EventGrid
     /groups/[slug]            Group details + upcoming events
@@ -121,7 +122,9 @@ Authentication has three UI states: signed out, authenticated but awaiting onboa
 
 The top bar contains navigation, account controls, and the card-menu toggle, without a separate Get involved/Create event CTA or global search bar. Discovery filters remain on Discover; event creation remains accessible from Event hub and the expanded menu.
 
-The root route is now **About**, replacing the former Home dashboard. A [React Bits Carousel](https://www.reactbits.dev/components/carousel) adaptation presents three cards: what Turnout is, who it serves, and what users can do. The first card reads **Service events in your community**. The carousel fits the available page width, supports drag/swipe, arrows, indicators, and keyboard navigation, honors reduced motion, and does not autoplay. Offscreen cards cannot receive focus. Personal impact and upcoming opportunities are removed from this page; verified hours remain on Profile, and event discovery remains on Discover. The community strip reads **Community service in your area** and links to the organization directory.
+The root route shows a **public landing page** when signed out, led by **Community service, organized.** A minimal header and account links accompany an illustrative event-list preview, three explanatory steps, and volunteer/organization sections. No decorative eyebrow labels or map preview are used. Copy describes local discovery, connections, event posting, and event coordination. The page does not display real event records, private navigation, or infer a visitor's location. `/sign-in` and `/sign-up` share this public shell with one centered form panel and no promotional side column; onboarding keeps its separate setup shell. This landing-page iteration is local for review and has not been deployed.
+
+For completed accounts, the root route remains **About**. A [React Bits Carousel](https://www.reactbits.dev/components/carousel) adaptation presents three cards: what Turnout is, who it serves, and what users can do. The first card reads **Service events in your community**. The carousel fits the available page width, supports drag/swipe, arrows, indicators, and keyboard navigation, honors reduced motion, and does not autoplay. Offscreen cards cannot receive focus. Personal impact and upcoming opportunities are removed from this page; verified hours remain on Profile, and event discovery remains on Discover. The community strip reads **Community service in your area** and links to the organization directory.
 
 Loading/empty/error/access states, labeled controls, keyboard focus, and responsive layouts are included. Font and component attribution is in [Design sources](DESIGN_SOURCES.md).
 

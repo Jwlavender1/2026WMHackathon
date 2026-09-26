@@ -21,6 +21,7 @@ type Store = {
 };
 const Context = createContext<Store | null>(null);
 const KEY = 'commonly-demo-v1';
+const freshDemo = (): DemoState => ({ ...makeFixtures(), profile: null });
 export function AppProvider({
   children,
   initial,
@@ -39,10 +40,10 @@ export function AppProvider({
     let state: DemoState;
     try {
       const saved = localStorage.getItem(KEY);
-      state = saved ? JSON.parse(saved) : makeFixtures();
-      if (!Array.isArray(state.profiles) || !Array.isArray(state.events)) state = makeFixtures();
+      state = saved ? JSON.parse(saved) : freshDemo();
+      if (!Array.isArray(state.profiles) || !Array.isArray(state.events)) state = freshDemo();
     } catch {
-      state = makeFixtures();
+      state = freshDemo();
     }
     // Browser-only fixture persistence is hydrated after the server-rendered shell.
     // eslint-disable-next-line react-hooks/set-state-in-effect

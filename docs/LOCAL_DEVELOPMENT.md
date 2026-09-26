@@ -20,8 +20,10 @@ Open **http://localhost:3000**. Run commands from the directory containing `pack
 ## Try the demo
 
 - Use `APP_MODE=demo` (also the default when unset). A fresh clone does not need `.env.local`. The old Supabase variables are no longer used.
-- Look for the **Demo workspace** banner. Its **Try a role** selector switches between volunteers and the two organization coordinators. Navigation is in the top bar; open its menu button to see the navigation cards on smaller screens.
+- A fresh browser starts on the landing page. Choose **Sign in**, select Volunteer or Organization, and submit to use a sample account; no password or Auth0 account is needed in demo mode. **Create an account** starts local onboarding. Signed-out visitors cannot browse app pages.
+- Once signed in, look for the **Demo workspace** banner. Its **Try a role** selector switches between volunteers and the two organization coordinators. Navigation is in the top bar; open its menu button to see the navigation cards on smaller screens. Sign out to review the landing page again; existing browser sessions remain signed in until you do.
 - As a volunteer: discover an event, reserve a task, post a message, and edit your profile.
+- Discover starts with your confirmed city and state. To search elsewhere, change its Location field; clearing that field and pressing Filter shows all locations. Older profiles without a confirmed city are prompted to update Profile.
 - As an organizer: use **My group** and **Event hub**, create an event or recurring series, then use **Previous events** to verify sample attendance.
 - To try onboarding: open `/sign-up`, enter a name, and create a demo account. Choose Volunteer or Organization, continue, then select a city suggestion. Organization setup creates its group in the same submission.
 - Demo city lookup is deliberately limited to **Williamsburg, VA**, **Williamsburg, KY**, and **Richmond, VA**, including common misspellings. It needs no API key. Live lookup uses Geoapify; a key alone does not switch demo mode to live mode.

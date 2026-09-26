@@ -11,7 +11,8 @@ import { verifyLocation } from '@/lib/geocoding';
 import { locationSchema } from '@/lib/location';
 import { withDatabaseUser } from '@/lib/db/server';
 import { validateAvatar } from '@/lib/avatar';
-import type { Result, Snapshot } from '@/lib/types';
+import { emptySnapshot, type Result, type Snapshot } from '@/lib/types';
+import { auth0 } from '@/lib/auth0';
 
 const uuid = z.uuid();
 const commandSchemas = {
@@ -26,6 +27,8 @@ const commandSchemas = {
   hide_comment: z.object({ comment_id: uuid }),
 };
 export async function readSnapshot(): Promise<Snapshot> {
+  // The landing page must not fetch or serialize app records for signed-out visitors.
+  if (!(await auth0().getSession())?.user.sub) return emptySnapshot();
   return withDatabaseUser(async (client, actor, displayName, identity) => {
     const { rows } = await client.query<{ snapshot: Snapshot }>(
       'SELECT public.app_snapshot() AS snapshot',
@@ -34,7 +37,7 @@ export async function readSnapshot(): Promise<Snapshot> {
     if (actor && !snapshot.profile)
       snapshot.onboarding = { display_name: displayName, email: identity.email };
     return snapshot;
-  });
+  }, true);
 }
 export async function runCommand(kind: string, input: unknown): Promise<Result<{ id: string }>> {
   try {

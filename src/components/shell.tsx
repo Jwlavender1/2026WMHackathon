@@ -5,11 +5,12 @@ import { usePathname } from 'next/navigation';
 import { ArrowUpRight, LogOut, Sparkle, X } from 'lucide-react';
 import { useApp } from './provider';
 import { CardNav } from './card-nav';
+import { PublicHeader, PublicFooter } from './landing';
 import { initials } from '@/lib/domain';
 import { authenticationState, type DemoState } from '@/lib/types';
 
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const { data, demo, notice, setNotice, switchUser, logout } = useApp();
+  const { data, demo, ready, notice, setNotice, switchUser, logout } = useApp();
   const path = usePathname();
   const org = data.profile?.role === 'organization';
   const state = authenticationState(data);
@@ -21,6 +22,24 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </button>
     </div>
   );
+  if (!ready || state === 'signed_out')
+    return (
+      <>
+        <a className="skip-link" href="#main">
+          Skip to content
+        </a>
+        <PublicHeader />
+        <main id="main" tabIndex={-1}>
+          {path === '/sign-in' || path === '/sign-up' ? (
+            <div className="workspace">{children}</div>
+          ) : (
+            children
+          )}
+        </main>
+        <PublicFooter />
+        {notification}
+      </>
+    );
   if (state === 'onboarding' || path === '/onboarding')
     return (
       <div className="onboarding-shell">
@@ -36,11 +55,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               turnout<span className="brand-period">.</span>
             </span>
           </Link>
-          {state !== 'signed_out' && (
-            <button className="text-button" onClick={() => void logout()}>
-              Sign out <LogOut size={17} />
-            </button>
-          )}
+          <button className="text-button" onClick={() => void logout()}>
+            Sign out <LogOut size={17} />
+          </button>
         </header>
         <main id="main" className="onboarding-content" tabIndex={-1}>
           {children}
@@ -57,7 +74,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <CardNav
           key={`${path}:${data.profile?.role}`}
           organization={org}
-          signedIn={state !== 'signed_out'}
+          signedIn
           accountControls={
             <div className="account-tools">
               {data.profile ? (

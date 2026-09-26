@@ -1,6 +1,14 @@
 import { test, expect } from '@playwright/test';
-import { fixtureId } from '../../src/lib/fixtures';
+import { fixtureId, makeFixtures } from '../../src/lib/fixtures';
 import { mkdir } from 'node:fs/promises';
+
+// Product-flow tests start with a signed-in sample account. Landing tests start signed out.
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript((state) => {
+    if (!localStorage.getItem('commonly-demo-v1'))
+      localStorage.setItem('commonly-demo-v1', JSON.stringify(state));
+  }, makeFixtures());
+});
 
 test('about page, filtering, reservations, messages, and profile persistence', async ({ page }) => {
   const errors: string[] = [];
@@ -194,7 +202,8 @@ test('onboarding keeps lookup failures visible and can sign out before profile c
   ).toBeVisible();
   await expect(page.locator('input[name="location_id"]')).toHaveValue('');
   await page.getByRole('button', { name: 'Sign out', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Sign in to set up your account' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Community service, organized.' })).toBeVisible();
+  await expect(page).toHaveURL(/\/$/);
 });
 
 test('organization creates recurring events and verifies attendance', async ({ page }) => {
@@ -342,6 +351,9 @@ test('about carousel handles drag, touch swipe, and viewport resizing', async ({
     isMobile: true,
   });
   try {
+    await context.addInitScript((state) => {
+      localStorage.setItem('commonly-demo-v1', JSON.stringify(state));
+    }, makeFixtures());
     const page = await context.newPage();
     await page.goto('/');
     const viewport = page.locator('.about-carousel-viewport');

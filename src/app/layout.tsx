@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { appMode } from '@/lib/config';
 import { readSnapshot } from './actions';
-import { makeFixtures } from '@/lib/fixtures';
+import { emptySnapshot } from '@/lib/types';
 import { AppProvider } from '@/components/provider';
 import { AppShell } from '@/components/shell';
 import './globals.css';
@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 export const dynamic = 'force-dynamic';
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const demo = appMode() === 'demo';
-  const initial = demo ? makeFixtures() : await readSnapshot();
+  const initial = demo ? emptySnapshot() : await readSnapshot();
   return (
     <html lang="en">
       <body>

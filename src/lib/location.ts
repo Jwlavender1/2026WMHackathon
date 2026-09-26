@@ -88,6 +88,15 @@ export function locationLabel(location: Location) {
 export function shortLocation(record: { city: string; location?: Location | null }) {
   return record.location ? `${record.location.city}, ${record.location.state_code}` : record.city;
 }
+export function sameCity(a?: Location | null, b?: Location | null) {
+  return Boolean(
+    a &&
+    b &&
+    a.country_code === b.country_code &&
+    a.state_code === b.state_code &&
+    a.city.trim().toLowerCase() === b.city.trim().toLowerCase(),
+  );
+}
 
 // Fixed examples for the browser-only demo; live mode never falls back to these.
 export const DEMO_LOCATIONS: Location[] = [

@@ -624,158 +624,90 @@ export function AuthForm({ mode }: { mode: 'sign-in' | 'sign-up' }) {
     router = useRouter();
   const [role, setRole] = useState('volunteer'),
     signup = mode === 'sign-up';
-  if (!demo)
-    return (
-      <div className="auth-layout">
-        <div className="auth-intro">
-          <span className="sparkle-box">
-            <Sparkle size={28} />
-          </span>
-          <p className="eyebrow">DO GOOD, TOGETHER</p>
-          <h1>
-            Your community.
-            <br />
-            Your kind of good.
-          </h1>
-          <p>A little good starts with showing up.</p>
-        </div>
-        <section className="panel auth-panel">
-          <h2>{signup ? 'Join your community' : 'Welcome back'}</h2>
-          <p className="muted">
-            Continue securely with Auth0.{' '}
-            {signup
-              ? 'You’ll choose Volunteer or Organization when you set up your profile.'
-              : 'Your next good thing is waiting.'}
-          </p>
+  return (
+    <div className="auth-layout">
+      <section className="panel auth-panel" aria-labelledby="auth-title">
+        <h1 id="auth-title">{signup ? 'Create your account' : 'Welcome back'}</h1>
+        <p className="muted">
+          {signup
+            ? 'Connect with local volunteers and organizations.'
+            : 'Sign in to access your events and community.'}
+        </p>
+        {demo ? (
+          <>
+            <p className="inline-alert">
+              Demo mode: no email is sent and no password is stored.{' '}
+              {signup
+                ? 'Create a local demo profile.'
+                : 'Choose a role to explore a sample account.'}
+            </p>
+            <form
+              className="form-stack"
+              onSubmit={async (e) => {
+                e.preventDefault();
+                const fields = Object.fromEntries(new FormData(e.currentTarget)) as Record<
+                  string,
+                  string
+                >;
+                if (
+                  await login(mode, {
+                    ...fields,
+                    role,
+                    display_name: fields.display_name || 'Community member',
+                  })
+                )
+                  router.push(
+                    signup ? '/onboarding' : role === 'organization' ? '/event-hub' : '/browse',
+                  );
+              }}
+            >
+              {!signup && (
+                <fieldset className="role-picker">
+                  <legend>Account type</legend>
+                  <button
+                    type="button"
+                    aria-pressed={role === 'volunteer'}
+                    className={role === 'volunteer' ? 'selected' : ''}
+                    onClick={() => setRole('volunteer')}
+                  >
+                    <Sparkle size={18} /> Volunteer
+                  </button>
+                  <button
+                    type="button"
+                    aria-pressed={role === 'organization'}
+                    className={role === 'organization' ? 'selected' : ''}
+                    onClick={() => setRole('organization')}
+                  >
+                    <Users size={18} /> Organization
+                  </button>
+                </fieldset>
+              )}
+              {signup && (
+                <Field
+                  label="Your name"
+                  name="display_name"
+                  required
+                  minLength={2}
+                  maxLength={80}
+                  autoComplete="name"
+                />
+              )}
+              <button className="button full" disabled={busy}>
+                {busy ? 'Please wait...' : signup ? 'Create account' : 'Sign in'}{' '}
+                <ArrowRight size={17} />
+              </button>
+            </form>
+          </>
+        ) : (
           <a
             className="button full"
             href={signup ? '/auth/login?screen_hint=signup' : '/auth/login'}
           >
             {signup ? 'Create account' : 'Sign in'} with Auth0 <ArrowRight size={17} />
           </a>
-          <p className="auth-switch">
-            {signup ? 'Already have an account?' : 'New here?'}{' '}
-            <Link className="text-link" href={signup ? '/sign-in' : '/sign-up'}>
-              {signup ? 'Sign in' : 'Create account'}
-            </Link>
-          </p>
-        </section>
-      </div>
-    );
-  return (
-    <div className="auth-layout">
-      <div className="auth-intro">
-        <span className="sparkle-box">
-          <Sparkle size={28} />
-        </span>
-        <p className="eyebrow">DO GOOD, TOGETHER</p>
-        <h1>
-          Your community.
-          <br />
-          Your kind of good.
-        </h1>
-        <p>
-          Find meaningful ways to give back, meet your neighbors, and make a little more good
-          happen.
-        </p>
-        <div>
-          <Check size={18} /> Opportunities close to home
-        </div>
-        <div>
-          <Check size={18} /> One place for every event detail
-        </div>
-        <div>
-          <Check size={18} /> Every hour of service counts
-        </div>
-      </div>
-      <section className="panel auth-panel">
-        <h2>{signup ? 'A little good starts here' : 'Welcome back'}</h2>
-        <p className="muted">
-          {signup ? 'Join a community that shows up.' : 'Your next good thing is waiting.'}
-        </p>
-        {demo && (
-          <p className="inline-alert">
-            Demo mode: no email is sent and no password is stored.{' '}
-            {signup ? 'Create a local demo profile.' : 'Choose a role to explore a sample account.'}
-          </p>
         )}
-        <form
-          className="form-stack"
-          onSubmit={async (e) => {
-            e.preventDefault();
-            const fields = Object.fromEntries(new FormData(e.currentTarget)) as Record<
-              string,
-              string
-            >;
-            if (
-              await login(mode, {
-                ...fields,
-                role,
-                display_name: fields.display_name || 'Community member',
-              })
-            )
-              router.push(signup ? '/onboarding' : '/');
-          }}
-        >
-          {!signup && demo && (
-            <fieldset className="role-picker">
-              <legend>I’m here as a</legend>
-              <button
-                type="button"
-                aria-pressed={role === 'volunteer'}
-                className={role === 'volunteer' ? 'selected' : ''}
-                onClick={() => setRole('volunteer')}
-              >
-                <Sparkle size={18} />
-                Volunteer
-              </button>
-              <button
-                type="button"
-                aria-pressed={role === 'organization'}
-                className={role === 'organization' ? 'selected' : ''}
-                onClick={() => setRole('organization')}
-              >
-                <Users size={18} />
-                Organization
-              </button>
-            </fieldset>
-          )}
-          {signup && (
-            <Field
-              label="Your name"
-              name="display_name"
-              required
-              minLength={2}
-              maxLength={80}
-              autoComplete="name"
-            />
-          )}
-          {!demo && (
-            <>
-              <Field
-                label="Email address"
-                name="email"
-                type="email"
-                required
-                autoComplete="email"
-              />
-              <Field
-                label="Password"
-                name="password"
-                type="password"
-                minLength={8}
-                required
-                autoComplete={signup ? 'new-password' : 'current-password'}
-              />
-            </>
-          )}
-          <button className="button full" disabled={busy}>
-            {busy ? 'One moment…' : signup ? 'Create account' : 'Sign in'}
-            <ArrowRight size={17} />
-          </button>
-        </form>
         <p className="auth-switch">
-          {signup ? 'Already part of the community?' : 'New around here?'}{' '}
+          {signup ? 'Already have an account?' : 'New to Turnout?'}{' '}
           <Link className="text-link" href={signup ? '/sign-in' : '/sign-up'}>
             {signup ? 'Sign in' : 'Create an account'}
           </Link>
@@ -784,6 +716,7 @@ export function AuthForm({ mode }: { mode: 'sign-in' | 'sign-up' }) {
     </div>
   );
 }
+
 function Field({
   label,
   ...props

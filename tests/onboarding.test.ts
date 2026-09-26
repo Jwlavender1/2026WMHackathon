@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { PGlite } from '@electric-sql/pglite';
 import { readFile } from 'node:fs/promises';
 import { parseCity, searchCities, signLocation, verifyLocation } from '../src/lib/geocoding';
-import { DEMO_LOCATIONS } from '../src/lib/location';
+import { DEMO_LOCATIONS, sameCity } from '../src/lib/location';
 import { authenticationState } from '../src/lib/types';
 import { makeFixtures } from '../src/lib/fixtures';
 import { demoCommand } from '../src/lib/demo';
@@ -11,6 +11,13 @@ import type { Snapshot } from '../src/lib/types';
 import { onboardingSchema } from '../src/lib/domain';
 
 const place = { ...DEMO_LOCATIONS[0], provider: 'geoapify' as const, id: 'provider-test-place' };
+test('default discovery matches city and state, not provider IDs or unconfirmed city strings', () => {
+  assert.equal(sameCity(DEMO_LOCATIONS[0], place), true);
+  assert.equal(sameCity(DEMO_LOCATIONS[0], DEMO_LOCATIONS[1]), false);
+  assert.equal(sameCity(DEMO_LOCATIONS[0], DEMO_LOCATIONS[2]), false);
+  assert.equal(sameCity(DEMO_LOCATIONS[0], null), false);
+  assert.equal(sameCity(undefined, place), false);
+});
 test('location proof rejects tampering, mismatched identities, IDs, expired and demo selections', () => {
   const proof = signLocation(place, 'auth0|a', 'test-secret', 1000);
   assert.deepEqual(verifyLocation(proof, place.id, 'auth0|a', 'test-secret', 2000), place);
