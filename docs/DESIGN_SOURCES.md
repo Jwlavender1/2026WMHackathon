@@ -1,0 +1,6 @@
+# Turnout design sources
+
+- **Dongle:** designed by Yanghee Ryu; [Google Fonts specimen](https://fonts.google.com/specimen/Dongle) and [official font repository](https://github.com/google/fonts/tree/main/ofl/dongle). Regular (400) and bold (700) Latin WOFF2 subsets are bundled in `public/fonts/dongle`, obtained from Google's font stylesheet. The SIL Open Font License is included at [../public/fonts/dongle/OFL.txt](../public/fonts/dongle/OFL.txt). Unsupported glyphs fall back to the system sans serif.
+- **Top navigation:** adapted from the expandable three-card pattern of [React Bits Card Nav](https://www.reactbits.dev/components/card-nav), [TypeScript/CSS source](https://github.com/DavidHDev/react-bits/tree/main/src/ts-default/Components/CardNav). Turnout uses CSS transitions, its existing Lucide icons, Next.js links, role-aware destinations, and keyboard/mobile behavior instead of the reference's GSAP animation. [React Bits license](REACT_BITS_LICENSE.md).
+- **Colors:** primary `#CE93D8`, secondary `#FFF59D`, chosen by the team. Dark plum is used for text on these light colors; darker purple supports links and focus indicators.
+- **Artwork:** the hero's circles, people icon, and labels are composed in HTML/CSS using the existing Lucide library. Existing event photographs retain their attribution in the README.

@@ -20,7 +20,7 @@ Open **http://localhost:3000**. Run commands from the directory containing `pack
 ## Try the demo
 
 - Use `APP_MODE=demo` (also the default when unset). A fresh clone does not need `.env.local`. The old Supabase variables are no longer used.
-- Look for the **Demo workspace** banner. The sidebar selector switches between volunteers and the two organization coordinators; on mobile, open the navigation menu first.
+- Look for the **Demo workspace** banner. Its **Try a role** selector switches between volunteers and the two organization coordinators. Navigation is in the top bar; open its menu button to see the navigation cards on smaller screens.
 - As a volunteer: discover an event, reserve a task, post a message, and edit your profile.
 - As an organizer: use **My group** and **Event hub**, create an event or recurring series, then use **Previous events** to verify sample attendance.
 - Fixtures include two organizations, five future occurrences, and one past event. All listings are fictional. Changes persist in this browser only; they are not shared with teammates.

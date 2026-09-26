@@ -1,6 +1,6 @@
 # MVP Source of Truth
 
-**Status:** product scope approved September 26, 2026. The application is named **Turnout**; the supplied UI mockup remains the visual reference. The user selected Auth0 and DigitalOcean and confirmed there is no real Supabase data to preserve. The provider migration is implemented in this repository; real Auth0 login and DigitalOcean deployment still require account configuration and verification.
+**Status:** product scope approved September 26, 2026. The application is named **Turnout**. The updated design uses Dongle, purple/yellow, and top navigation as described below; it supersedes the original mockup's serif/green/sidebar styling. The user selected Auth0 and DigitalOcean and confirmed there is no real Supabase data to preserve. The provider migration is implemented in this repository; real Auth0 login and DigitalOcean deployment still require account configuration and verification.
 
 Team guides: [Local development](LOCAL_DEVELOPMENT.md) · [Git workflow](TEAM_WORKFLOW.md) · [Auth0/DigitalOcean setup](AUTH0_DIGITALOCEAN_HANDOFF.md).
 
@@ -91,7 +91,7 @@ Mutations return success data or a user-visible error. Database-shaped TypeScrip
 
 ## 6. UI and routes
 
-    RootLayout → AppProvider → AppShell (sidebar, search, role-aware navigation)
+    RootLayout → AppProvider → AppShell (CardNav top navigation, search, account controls)
     /                         Photo hero, verified impact, upcoming opportunities
     /sign-in, /sign-up         Auth0 entry point, or local demo account flow
     /onboarding               One-time role/profile form after Auth0 login
@@ -107,7 +107,13 @@ Mutations return success data or a user-visible error. Database-shaped TypeScrip
     /messages                 Authorized event conversation list
     /community                Organization directory
 
-Turnout uses the mockup's emerald/mint colors, serif headings, white sidebar, dark photo hero, and rounded cards. Impact shows real all-time totals and the next registered event; monthly goal/unread values are not fabricated. Volunteer header actions discover opportunities; organizations see Create event. Loading/empty/error/access states, labeled controls, keyboard focus, responsive layouts, and mobile navigation are included.
+Turnout uses **primary #CE93D8 (purple)** and **secondary #FFF59D (yellow)**, with dark plum text and light backgrounds. **Dongle** is bundled locally for the wordmark, headings, navigation, and display numbers; system sans serif supports readable body copy and forms. There are no serif fonts. The home hero uses a community graphic and bold typography.
+
+The sidebar is replaced by top navigation. Direct desktop links and an expandable three-card menu retain Home, Discover, My events/Event hub, Messages, Community, My group for organizers, and profile access. The interaction is adapted from [React Bits Card Nav](https://www.reactbits.dev/components/card-nav), using CSS transitions with reduced-motion support, a semantic disclosure button, inactive hidden links, Escape-to-close, and mobile layouts. The demo role selector lives above the main content.
+
+Impact shows real all-time totals and the next registered event; monthly goal/unread values are not fabricated. Loading/empty/error/access states, labeled controls, keyboard focus, and responsive layouts are included. Font and component attribution is in [Design sources](DESIGN_SOURCES.md).
+
+The AI recommendation is retained separately in [AI feature plan](AI_FEATURE_PLAN.md). Event drafting and pasted-announcement extraction are deferred while the team updates the UI.
 
 The legacy `commonly-demo-v1` storage key, `commonly_runtime` database role, and migration/seed lock identifiers remain stable to preserve saved demo data, migration checksums, and database compatibility. They are internal identifiers, not the product name.
 

@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { useApp } from './provider';
-import { Empty, EventDetail, EventGrid, PageHeading, photos } from './events';
+import { Empty, EventDetail, EventGrid, PageHeading } from './events';
 import { AuthForm, EventForm, GroupForm, ManageEvent, ProfileForm, OnboardingForm } from './forms';
 import { eventPhase, formatDate, hoursServed } from '@/lib/domain';
 
@@ -66,30 +66,46 @@ function Home() {
   return (
     <>
       <div className="home-top">
-        <section
-          className="hero"
-          style={{
-            backgroundImage: `linear-gradient(90deg,rgba(7,12,29,.96),rgba(7,12,29,.65)),url("${photos.food}")`,
-          }}
-        >
-          <span className="welcome">
-            <span className="live-dot" />
-            {profile
-              ? `Welcome back, ${profile.display_name.split(' ')[0]}`
-              : 'A little good starts with you'}
-          </span>
-          <h1>
-            Small acts.
-            <br />
-            Real change.
-          </h1>
-          <p>
-            Find your next way to help, connect with neighbors, and keep every event detail in one
-            place.
-          </p>
-          <Link className="button white hero-button" href="/browse">
-            Explore opportunities <ArrowRight size={20} />
-          </Link>
+        <section className="hero">
+          <div className="hero-copy">
+            <span className="welcome">
+              <span className="live-dot" />
+              {profile
+                ? `Welcome back, ${profile.display_name.split(' ')[0]}`
+                : 'A little good starts with you'}
+            </span>
+            <h1>
+              Small acts.
+              <br />
+              Real change.
+            </h1>
+            <p>
+              Find your next way to help, connect with neighbors, and keep every event detail in one
+              place.
+            </p>
+            <Link className="button white hero-button" href="/browse">
+              Explore opportunities <ArrowRight size={20} />
+            </Link>
+          </div>
+          <div className="hero-art" aria-hidden="true">
+            <span className="orbit orbit-one" />
+            <span className="orbit orbit-two" />
+            <div className="people-stamp">
+              <Users size={76} />
+              <span>
+                better
+                <br />
+                together.
+              </span>
+            </div>
+            <span className="art-sparkle">
+              <Sparkle size={42} />
+            </span>
+            <span className="art-note">
+              a little time.
+              <br />a lot of good.
+            </span>
+          </div>
         </section>
         <section className="impact-card">
           <div className="impact-heading">

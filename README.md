@@ -1,6 +1,6 @@
 # Turnout
 
-**Do good, together.** A community volunteering platform for the Year of Civic Leadership hackathon, following the supplied UI mockup.
+**Do good, together.** A community volunteering platform for the Year of Civic Leadership hackathon. Turnout uses Dongle display typography, a purple/yellow theme, and expandable top navigation.
 
 ## Start here
 
@@ -8,6 +8,8 @@
 - [Team Git workflow](docs/TEAM_WORKFLOW.md)
 - [Auth0 + DigitalOcean setup and deployment](docs/AUTH0_DIGITALOCEAN_HANDOFF.md)
 - [MVP source of truth](docs/MVP_SPEC.md)
+- [Saved AI feature plan](docs/AI_FEATURE_PLAN.md)
+- [Design sources and licenses](docs/DESIGN_SOURCES.md)
 
 Requires Node.js 24 and Git:
 

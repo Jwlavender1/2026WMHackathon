@@ -13,6 +13,7 @@ test('mockup shell, filtering, reservations, messages, and profile persistence',
   await page.evaluate(() =>
     Promise.all(Array.from(document.images).map((img) => img.decode().catch(() => {}))),
   );
+  await page.evaluate(() => document.fonts.ready);
   await page.screenshot({ path: '.artifacts/home-desktop.png', fullPage: true });
   await page.getByRole('link', { name: 'Discover', exact: true }).click();
   await page.getByLabel('Location', { exact: true }).fill('Williamsburg');
@@ -134,10 +135,58 @@ test('mobile navigation and forms fit without horizontal overflow', async ({ pag
     true,
   );
   await page.getByRole('button', { name: 'Open navigation' }).click();
+  await expect(page.getByRole('navigation', { name: 'Explore Turnout' })).toBeVisible();
+  await page.screenshot({
+    path: '.artifacts/navigation-mobile.png',
+    fullPage: true,
+    animations: 'disabled',
+  });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
+    true,
+  );
   await page.getByRole('link', { name: 'Discover', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Open navigation' })).toHaveAttribute(
+    'aria-expanded',
+    'false',
+  );
   await expect(page.getByRole('heading', { name: 'A cause for every kind of you.' })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
     true,
   );
   await page.screenshot({ path: '.artifacts/browse-mobile.png', fullPage: true });
+});
+
+test('card navigation supports keyboard dismissal and organization destinations', async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Open navigation' }).focus();
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('button', { name: 'Close navigation' })).toHaveAttribute(
+    'aria-expanded',
+    'true',
+  );
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('button', { name: 'Open navigation' })).toBeFocused();
+  await expect(page.getByRole('navigation', { name: 'Explore Turnout' })).toBeHidden();
+  await page.getByLabel('Demo account', { exact: true }).selectOption(fixtureId(4));
+  await page.getByRole('button', { name: 'Open navigation' }).click();
+  await page.evaluate(() => document.fonts.ready);
+  await page.screenshot({ path: '.artifacts/navigation-desktop.png', fullPage: true });
+  await page
+    .getByRole('navigation', { name: 'Explore Turnout' })
+    .getByRole('link', { name: 'My group', exact: true })
+    .click();
+  await expect(page).toHaveURL(/\/my-group$/);
+  await expect(page.getByRole('button', { name: 'Open navigation' })).toHaveAttribute(
+    'aria-expanded',
+    'false',
+  );
+  await page.getByRole('button', { name: 'Open navigation' }).click();
+  await page.getByRole('main').click({ position: { x: 10, y: 400 } });
+  await expect(page.getByRole('button', { name: 'Open navigation' })).toHaveAttribute(
+    'aria-expanded',
+    'false',
+  );
 });
