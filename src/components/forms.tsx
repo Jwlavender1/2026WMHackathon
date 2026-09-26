@@ -774,7 +774,7 @@ export function OnboardingForm() {
   return (
     <section className="panel form-panel">
       <PageHeading
-        eyebrow="WELCOME TO COMMONLY"
+        eyebrow="WELCOME TO TURNOUT"
         title="Find your place"
         description="Choose how you want to help. This account role is set once."
       />

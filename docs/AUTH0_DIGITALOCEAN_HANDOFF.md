@@ -43,7 +43,7 @@ The first creates portable tables, RLS, and authorized functions; the second gra
 
 Set **ALLOW_DEMO_SEED=true** and **SEED_DATABASE_HOST** to the exact hostname from the intended demo database URL, then run `npm run seed`. It creates two groups, five future occurrences, one past event, sample reservations/hours/messages. Dates are relative to the first run; reruns preserve existing fixtures. It never creates passwords or Auth0 users.
 
-By default, fixture users have non-login `demo:` identities. To manage a sample group using a real Auth0 account, **before the first seed**, set **SEED_MERCY_AUTH0_SUB** and/or **SEED_LIBRARY_AUTH0_SUB** to the exact verified Auth0 subject (User ID) from the tenant. If that user already logged into Commonly, first finish onboarding as an organization. A rerun will not silently reassign ownership or overwrite a role. Otherwise, a real user can simply create their own group/events after onboarding.
+By default, fixture users have non-login `demo:` identities. To manage a sample group using a real Auth0 account, **before the first seed**, set **SEED_MERCY_AUTH0_SUB** and/or **SEED_LIBRARY_AUTH0_SUB** to the exact verified Auth0 subject (User ID) from the tenant. If that user already logged into Turnout, first finish onboarding as an organization. A rerun will not silently reassign ownership or overwrite a role. Otherwise, a real user can simply create their own group/events after onboarding.
 
 ## Architecture and validation
 

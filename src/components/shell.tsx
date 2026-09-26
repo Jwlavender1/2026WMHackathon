@@ -54,7 +54,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <Sparkle size={25} />
           </span>
           <span>
-            <strong>Commonly</strong>
+            <strong>Turnout</strong>
             <small>DO GOOD, TOGETHER</small>
           </span>
         </Link>

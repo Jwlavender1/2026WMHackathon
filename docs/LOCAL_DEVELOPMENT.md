@@ -1,4 +1,4 @@
-# Run Commonly locally
+# Run Turnout locally
 
 **Current state:** the app works immediately in browser-local demo mode. Live mode is wired for Auth0 and PostgreSQL; account configuration and a database are required to use it. See [the handoff](AUTH0_DIGITALOCEAN_HANDOFF.md). No cloud account or database is needed for the demo instructions below.
 

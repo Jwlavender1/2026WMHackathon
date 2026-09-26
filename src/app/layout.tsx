@@ -6,7 +6,7 @@ import { AppProvider } from '@/components/provider';
 import { AppShell } from '@/components/shell';
 import './globals.css';
 export const metadata: Metadata = {
-  title: 'Commonly — Do good, together',
+  title: 'Turnout — Do good, together',
   description:
     'Find your next way to help. Community volunteer events, meaningful connections, and all the details in one place.',
 };

@@ -1,6 +1,6 @@
 # MVP Source of Truth
 
-**Status:** product scope approved September 26, 2026. The supplied Commonly mockup remains the visual reference. The user selected Auth0 and DigitalOcean and confirmed there is no real Supabase data to preserve. The provider migration is implemented in this repository; real Auth0 login and DigitalOcean deployment still require account configuration and verification.
+**Status:** product scope approved September 26, 2026. The application is named **Turnout**; the supplied UI mockup remains the visual reference. The user selected Auth0 and DigitalOcean and confirmed there is no real Supabase data to preserve. The provider migration is implemented in this repository; real Auth0 login and DigitalOcean deployment still require account configuration and verification.
 
 Team guides: [Local development](LOCAL_DEVELOPMENT.md) · [Git workflow](TEAM_WORKFLOW.md) · [Auth0/DigitalOcean setup](AUTH0_DIGITALOCEAN_HANDOFF.md).
 
@@ -107,7 +107,9 @@ Mutations return success data or a user-visible error. Database-shaped TypeScrip
     /messages                 Authorized event conversation list
     /community                Organization directory
 
-The mockup defines the Commonly brand, emerald/mint colors, serif headings, white sidebar, dark photo hero, and rounded cards. Impact shows real all-time totals and the next registered event; monthly goal/unread values are not fabricated. Volunteer header actions discover opportunities; organizations see Create event. Loading/empty/error/access states, labeled controls, keyboard focus, responsive layouts, and mobile navigation are included.
+Turnout uses the mockup's emerald/mint colors, serif headings, white sidebar, dark photo hero, and rounded cards. Impact shows real all-time totals and the next registered event; monthly goal/unread values are not fabricated. Volunteer header actions discover opportunities; organizations see Create event. Loading/empty/error/access states, labeled controls, keyboard focus, responsive layouts, and mobile navigation are included.
+
+The legacy `commonly-demo-v1` storage key, `commonly_runtime` database role, and migration/seed lock identifiers remain stable to preserve saved demo data, migration checksums, and database compatibility. They are internal identifiers, not the product name.
 
 ## 7. Fixtures and connected seed
 

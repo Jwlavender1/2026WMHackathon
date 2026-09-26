@@ -1,6 +1,6 @@
-# Commonly
+# Turnout
 
-**Do good, together.** A community volunteering platform for the Year of Civic Leadership hackathon, following the supplied Commonly UI mockup.
+**Do good, together.** A community volunteering platform for the Year of Civic Leadership hackathon, following the supplied UI mockup.
 
 ## Start here
 

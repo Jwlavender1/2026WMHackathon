@@ -1,7 +1,7 @@
 # Deployment template only: no resources have been provisioned.
 # Attach your existing Managed PostgreSQL database in the dashboard and bind DATABASE_URL.
 # Pick the app/DB region and paid plan with the account owner before creating the app.
-name: commonly
+name: turnout
 services:
   - name: web
     github:
