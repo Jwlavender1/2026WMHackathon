@@ -1,0 +1,44 @@
+# Deployment template only: no resources have been provisioned.
+# Attach your existing Managed PostgreSQL database in the dashboard and bind DATABASE_URL.
+# Pick the app/DB region and paid plan with the account owner before creating the app.
+name: commonly
+services:
+  - name: web
+    github:
+      repo: Jwlavender1/2026WMHackathon
+      branch: main
+      deploy_on_push: false
+    source_dir: /
+    dockerfile_path: Dockerfile
+    instance_count: 1
+    http_port: 8080
+    health_check:
+      http_path: /api/health
+    envs:
+      - key: APP_MODE
+        scope: RUN_TIME
+        value: live
+      - key: APP_BASE_URL
+        scope: RUN_TIME
+        value: ${APP_URL}
+      - key: AUTH0_DOMAIN
+        scope: RUN_TIME
+        value: dev-o0ar4rp3e14z4odp.us.auth0.com
+      - key: AUTH0_CLIENT_ID
+        scope: RUN_TIME
+        value: g3NM42mxEDRAB2wDbAdaxzJih3qw490F
+      - key: AUTH0_CLIENT_SECRET
+        scope: RUN_TIME
+        type: SECRET
+      - key: AUTH0_SECRET
+        scope: RUN_TIME
+        type: SECRET
+      - key: DATABASE_URL
+        scope: RUN_TIME
+        type: SECRET
+      - key: PGSSL_MODE
+        scope: RUN_TIME
+        value: verify-full
+      - key: PGSSL_CA
+        scope: RUN_TIME
+        type: SECRET

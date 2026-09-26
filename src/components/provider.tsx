@@ -1,6 +1,6 @@
 'use client';
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
-import { authenticate, readSnapshot, runCommand, signOut, uploadAvatar } from '@/app/actions';
+import { readSnapshot, runCommand, uploadAvatar } from '@/app/actions';
 import { demoCommand } from '@/lib/demo';
 import { makeFixtures } from '@/lib/fixtures';
 import type { DemoState, Profile, Snapshot } from '@/lib/types';
@@ -13,7 +13,7 @@ type Store = {
   notice: string;
   setNotice: (s: string) => void;
   act: (kind: string, input: Record<string, unknown>) => Promise<boolean>;
-  refresh: () => Promise<void>;
+  refresh: () => Promise<boolean>;
   switchUser: (id: string) => void;
   login: (mode: 'sign-in' | 'sign-up', input: Record<string, string>) => Promise<boolean>;
   logout: () => Promise<void>;
@@ -66,10 +66,13 @@ export function AppProvider({
     if (!demo) {
       try {
         setData(await readSnapshot());
+        return true;
       } catch (e) {
         setNotice(e instanceof Error ? e.message : 'Unable to refresh.');
+        return false;
       }
     }
+    return true;
   }, [demo]);
   const act = async (kind: string, input: Record<string, unknown>) => {
     if (busy) return false;
@@ -95,6 +98,7 @@ export function AppProvider({
             profile: 'Profile saved.',
             group: 'Group saved.',
             hide_comment: 'Message removed.',
+            onboard: 'Welcome to your community. Your profile is ready.',
           } as Record<string, string>
         )[kind] ?? 'Saved.',
       );
@@ -133,11 +137,14 @@ export function AppProvider({
         save(next);
         return true;
       }
-      const result = await authenticate(mode, input);
-      if (!result.ok) throw new Error(result.error);
-      setNotice(result.data.message);
-      await refresh();
-      return !result.data.message.startsWith('Check');
+      // Auth0 endpoints require a full navigation through the server middleware.
+      window.location.assign(
+        new URL(
+          mode === 'sign-up' ? '/auth/login?screen_hint=signup' : '/auth/login',
+          window.location.origin,
+        ).href,
+      );
+      return false;
     } catch (e) {
       setNotice(e instanceof Error ? e.message : 'Unable to sign in.');
       return false;
@@ -151,8 +158,8 @@ export function AppProvider({
       next.profile = null;
       save(next);
     } else {
-      await signOut();
-      await refresh();
+      window.location.assign(new URL('/auth/logout', window.location.origin).href);
+      return;
     }
     setNotice('Signed out.');
   };

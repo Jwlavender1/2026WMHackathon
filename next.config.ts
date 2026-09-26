@@ -1,3 +1,6 @@
 import type { NextConfig } from 'next';
-const config: NextConfig = { experimental: { serverActions: { bodySizeLimit: '3mb' } } };
+const config: NextConfig = {
+  output: process.env.BUILD_STANDALONE === 'true' ? 'standalone' : undefined,
+  experimental: { serverActions: { bodySizeLimit: '3mb' } },
+};
 export default config;

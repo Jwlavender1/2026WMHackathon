@@ -41,16 +41,14 @@ test('mockup shell, filtering, reservations, messages, and profile persistence',
   await expect(page.getByRole('textbox', { name: 'About me', exact: true })).toHaveValue(
     'I love helping my Williamsburg community.',
   );
-  await page
-    .getByLabel('Profile picture')
-    .setInputFiles({
-      name: 'avatar.png',
-      mimeType: 'image/png',
-      buffer: Buffer.from(
-        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jk0sAAAAASUVORK5CYII=',
-        'base64',
-      ),
-    });
+  await page.getByLabel('Profile picture').setInputFiles({
+    name: 'avatar.png',
+    mimeType: 'image/png',
+    buffer: Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jk0sAAAAASUVORK5CYII=',
+      'base64',
+    ),
+  });
   await expect(page.getByRole('status')).toContainText('Profile picture updated');
   await page.reload();
   await expect(page.locator('.avatar.large img')).toHaveAttribute('src', /^data:image\/png/);

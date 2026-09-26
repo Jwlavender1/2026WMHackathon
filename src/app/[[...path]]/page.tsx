@@ -16,6 +16,7 @@ export default async function Page({ params }: { params: Promise<{ path?: string
       '/community',
       '/sign-in',
       '/sign-up',
+      '/onboarding',
     ].includes(route) &&
     !/^\/events\/[^/]+$/.test(route) &&
     !/^\/groups\/[^/]+$/.test(route) &&

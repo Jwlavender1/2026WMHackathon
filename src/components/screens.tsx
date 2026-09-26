@@ -15,11 +15,11 @@ import {
 import { useState } from 'react';
 import { useApp } from './provider';
 import { Empty, EventDetail, EventGrid, PageHeading, photos } from './events';
-import { AuthForm, EventForm, GroupForm, ManageEvent, ProfileForm } from './forms';
+import { AuthForm, EventForm, GroupForm, ManageEvent, ProfileForm, OnboardingForm } from './forms';
 import { eventPhase, formatDate, hoursServed } from '@/lib/domain';
 
 export function AppScreen({ route }: { route: string }) {
-  const { ready } = useApp();
+  const { ready, data } = useApp();
   if (!ready)
     return (
       <div className="loading-shell" role="status">
@@ -28,6 +28,7 @@ export function AppScreen({ route }: { route: string }) {
         <div className="skeleton" />
       </div>
     );
+  if (data.onboarding || route === '/onboarding') return <OnboardingForm />;
   if (route === '/') return <Home />;
   if (route === '/browse') return <Browse />;
   if (route === '/events') return <MyEvents />;

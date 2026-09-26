@@ -71,6 +71,7 @@ export type Series = {
   duration_minutes: number;
 };
 export type Snapshot = {
+  onboarding?: { display_name: string };
   profile: Profile | null;
   groups: Group[];
   events: Event[];

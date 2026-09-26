@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { configured } from '@/lib/supabase/server';
+import { appMode } from '@/lib/config';
 import { readSnapshot } from './actions';
 import { makeFixtures } from '@/lib/fixtures';
 import { AppProvider } from '@/components/provider';
@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 };
 export const dynamic = 'force-dynamic';
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const demo = !configured();
+  const demo = appMode() === 'demo';
   const initial = demo ? makeFixtures() : await readSnapshot();
   return (
     <html lang="en">

@@ -1,11 +1,17 @@
 'use server';
 import { z } from 'zod';
 import { eventSchema, groupSchema, occurrences, profileSchema } from '@/lib/domain';
-import { serverClient } from '@/lib/supabase/server';
+import { withDatabaseUser } from '@/lib/db/server';
+import { validateAvatar } from '@/lib/avatar';
 import type { Result, Snapshot } from '@/lib/types';
 
 const uuid = z.uuid();
 const commandSchemas = {
+  onboard: z.object({
+    role: z.enum(['volunteer', 'organization']),
+    display_name: z.string().trim().min(2).max(80),
+    city: z.string().trim().min(2).max(100),
+  }),
   profile: profileSchema,
   group: groupSchema,
   join: z.object({ event_id: uuid, task_id: uuid }),
@@ -16,26 +22,17 @@ const commandSchemas = {
   hide_comment: z.object({ comment_id: uuid }),
 };
 export async function readSnapshot(): Promise<Snapshot> {
-  const client = await serverClient();
-  const { data, error } = await client.rpc('app_snapshot');
-  if (error)
-    throw new Error('Unable to load community data. Check the Supabase migration and connection.');
-  const snapshot = data as Snapshot;
-  if (snapshot.profile?.avatar_path) {
-    const { data: signed } = await client.storage
-      .from('avatars')
-      .createSignedUrl(snapshot.profile.avatar_path, 3600);
-    snapshot.profile.avatar_path = signed?.signedUrl ?? null;
-  }
-  return snapshot;
+  return withDatabaseUser(async (client, actor, displayName) => {
+    const { rows } = await client.query<{ snapshot: Snapshot }>(
+      'SELECT public.app_snapshot() AS snapshot',
+    );
+    const snapshot = rows[0].snapshot;
+    if (actor && !snapshot.profile) snapshot.onboarding = { display_name: displayName };
+    return snapshot;
+  });
 }
 export async function runCommand(kind: string, input: unknown): Promise<Result<{ id: string }>> {
   try {
-    const client = await serverClient();
-    const {
-      data: { user },
-    } = await client.auth.getUser();
-    if (!user) throw new Error('Sign in to continue.');
     let payload: Record<string, unknown>;
     if (kind === 'create_event' || kind === 'update_event') {
       const value = eventSchema.parse(input);
@@ -60,8 +57,13 @@ export async function runCommand(kind: string, input: unknown): Promise<Result<{
       if (!(kind in commandSchemas)) throw new Error('Unknown operation.');
       payload = commandSchemas[kind as keyof typeof commandSchemas].parse(input);
     }
-    const { data, error } = await client.rpc('app_command', { kind, payload });
-    if (error) throw new Error(error.message);
+    const data = await withDatabaseUser(async (client) => {
+      const result = await client.query<{ data: { id: string } }>(
+        'SELECT public.app_command($1,$2::jsonb) AS data',
+        [kind, JSON.stringify(payload)],
+      );
+      return result.rows[0].data;
+    }, true);
     return { ok: true, data };
   } catch (error) {
     return {
@@ -75,69 +77,8 @@ export async function runCommand(kind: string, input: unknown): Promise<Result<{
     };
   }
 }
-export async function authenticate(
-  mode: 'sign-in' | 'sign-up',
-  input: unknown,
-): Promise<Result<{ message: string }>> {
-  try {
-    const form = z
-      .object({
-        email: z.email(),
-        password: z.string().min(8).max(128),
-        display_name: z.string().min(2).max(80),
-        role: z.enum(['volunteer', 'organization']),
-      })
-      .parse(input);
-    const client = await serverClient();
-    if (mode === 'sign-up') {
-      const origin = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
-      const { data, error } = await client.auth.signUp({
-        email: form.email,
-        password: form.password,
-        options: {
-          data: { role: form.role, display_name: form.display_name },
-          emailRedirectTo: `${origin}/auth/confirm`,
-        },
-      });
-      if (error) throw error;
-      return {
-        ok: true,
-        data: {
-          message: data.session
-            ? 'Account created.'
-            : 'Check your email to confirm your account, then sign in.',
-        },
-      };
-    }
-    const { error } = await client.auth.signInWithPassword({
-      email: form.email,
-      password: form.password,
-    });
-    if (error) throw error;
-    return { ok: true, data: { message: 'Signed in.' } };
-  } catch (error) {
-    return {
-      ok: false,
-      error:
-        error instanceof z.ZodError
-          ? error.issues[0].message
-          : error instanceof Error
-            ? error.message
-            : 'Authentication failed.',
-    };
-  }
-}
-export async function signOut(): Promise<void> {
-  const client = await serverClient();
-  await client.auth.signOut();
-}
 export async function uploadAvatar(form: FormData): Promise<Result<string>> {
   try {
-    const client = await serverClient();
-    const {
-      data: { user },
-    } = await client.auth.getUser();
-    if (!user) throw new Error('Sign in to continue.');
     const file = form.get('avatar');
     if (
       !(file instanceof File) ||
@@ -145,20 +86,15 @@ export async function uploadAvatar(form: FormData): Promise<Result<string>> {
       file.size > 2 * 1024 * 1024
     )
       throw new Error('Choose a JPEG, PNG, or WebP image under 2 MB.');
-    const ext = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' }[file.type]!;
-    const path = `${user.id}/${crypto.randomUUID()}.${ext}`;
-    const { error } = await client.storage
-      .from('avatars')
-      .upload(path, file, { contentType: file.type });
-    if (error) throw error;
-    const { error: saveError } = await client.rpc('app_command', {
-      kind: 'avatar',
-      payload: { path },
-    });
-    if (saveError) {
-      await client.storage.from('avatars').remove([path]);
-      throw saveError;
-    }
+    const bytes = Buffer.from(await file.arrayBuffer());
+    validateAvatar(file.type, bytes);
+    const path = await withDatabaseUser(async (client) => {
+      const { rows } = await client.query<{ path: string }>(
+        'SELECT public.app_save_avatar($1,$2) AS path',
+        [file.type, bytes],
+      );
+      return rows[0].path;
+    }, true);
     return { ok: true, data: path };
   } catch (error) {
     return { ok: false, error: error instanceof Error ? error.message : 'Upload failed.' };

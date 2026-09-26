@@ -1,6 +1,6 @@
 # Run Commonly locally
 
-**Current state:** the app works immediately in browser-local demo mode. Auth0 and DigitalOcean are the selected next providers, but their integration is not implemented yet. See [the handoff](AUTH0_DIGITALOCEAN_HANDOFF.md). No cloud account or database is needed for this guide.
+**Current state:** the app works immediately in browser-local demo mode. Live mode is wired for Auth0 and PostgreSQL; account configuration and a database are required to use it. See [the handoff](AUTH0_DIGITALOCEAN_HANDOFF.md). No cloud account or database is needed for the demo instructions below.
 
 ## First setup
 
@@ -19,7 +19,7 @@ Open **http://localhost:3000**. Run commands from the directory containing `pack
 
 ## Try the demo
 
-- Leave `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` unset/empty, including any shell environment values. A fresh clone does not need `.env.local`.
+- Use `APP_MODE=demo` (also the default when unset). A fresh clone does not need `.env.local`. The old Supabase variables are no longer used.
 - Look for the **Demo workspace** banner. The sidebar selector switches between volunteers and the two organization coordinators; on mobile, open the navigation menu first.
 - As a volunteer: discover an event, reserve a task, post a message, and edit your profile.
 - As an organizer: use **My group** and **Event hub**, create an event or recurring series, then use **Previous events** to verify sample attendance.
@@ -47,13 +47,13 @@ For browser tests, keep that production server running in demo mode, then run `n
 
 ## Common fixes
 
-| Symptom                               | Fix                                                                                                                                                                      |
-| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Cannot find `package.json`            | Change into the cloned repository folder.                                                                                                                                |
-| `npm ci` fails after pulling          | Check Node version and registry access. If the committed manifest/lockfile disagree, have the dependency-change author fix and commit both; do not discard the lockfile. |
-| Port 3000 is busy                     | Stop your other app instance, or use `npm run dev -- --port 3001` and visit that port. Browser tests still require port 3000.                                            |
-| No demo banner / Supabase error       | Remove or empty both Supabase public variables in local files and the shell, then restart.                                                                               |
-| Old demo data                         | Reset the single localStorage entry as described above.                                                                                                                  |
-| New environment values have no effect | Restart the development server. Auth0/DO variables will not take effect until their integration lands.                                                                   |
+| Symptom                                     | Fix                                                                                                                                                                      |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Cannot find `package.json`                  | Change into the cloned repository folder.                                                                                                                                |
+| `npm ci` fails after pulling                | Check Node version and registry access. If the committed manifest/lockfile disagree, have the dependency-change author fix and commit both; do not discard the lockfile. |
+| Port 3000 is busy                           | Stop your other app instance, or use `npm run dev -- --port 3001` and visit that port. Browser tests still require port 3000.                                            |
+| No demo banner / missing live configuration | Set `APP_MODE=demo` in your local environment and restart; live mode requires Auth0 and database configuration.                                                          |
+| Old demo data                               | Reset the single localStorage entry as described above.                                                                                                                  |
+| New environment values have no effect       | Restart the development server. Ensure shell variables are not overriding `.env.local`.                                                                                  |
 
-When live integration is ready, copy the updated `.env.example` to your own `.env.local` and obtain development credentials from the team owner. `.env.local` stays untracked. Do not run the current Supabase seed or migration against DigitalOcean; they depend on Supabase-specific services.
+For live integration, copy `.env.example` to your own `.env.local` if it does not already exist, and follow the handoff for Auth0, TLS, database users, migration, and seed setup. `.env.local` stays untracked. Use `npm run db:migrate`, `npm run db:grant-runtime`, and `npm run seed` with the intended database credentials. These commands do not provision DigitalOcean resources. For a PostgreSQL server running on localhost, use `PGSSL_MODE=disable` only if it has no TLS; remote connections require verification.

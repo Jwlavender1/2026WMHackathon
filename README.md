@@ -1,111 +1,72 @@
 # Commonly
 
-**Do good, together.** A community volunteering platform built for the Year of Civic Leadership hackathon. The approved source of truth is [docs/MVP_SPEC.md](docs/MVP_SPEC.md). The UI follows the supplied Commonly mockup.
+**Do good, together.** A community volunteering platform for the Year of Civic Leadership hackathon, following the supplied Commonly UI mockup.
 
-**Team guides:** [Run locally](docs/LOCAL_DEVELOPMENT.md) · [Push changes and stay updated](docs/TEAM_WORKFLOW.md) · [Auth0 + DigitalOcean handoff](docs/AUTH0_DIGITALOCEAN_HANDOFF.md).
+## Start here
 
-**Provider transition:** Auth0 and DigitalOcean are now the selected target services. The migration is pending; the running foundation still uses the local demo or the Supabase integration described below. New teammates should use the local demo rather than provision another Supabase project.
+- [Run locally](docs/LOCAL_DEVELOPMENT.md)
+- [Team Git workflow](docs/TEAM_WORKFLOW.md)
+- [Auth0 + DigitalOcean setup and deployment](docs/AUTH0_DIGITALOCEAN_HANDOFF.md)
+- [MVP source of truth](docs/MVP_SPEC.md)
 
-## Run immediately
-
-Requires Node.js 22.13+ (verified with Node 24). From this repository:
+Requires Node.js 24 and Git:
 
 ```sh
 npm ci
 npm run dev
 ```
 
-Open **http://localhost:3000**. On Windows with PowerShell script execution disabled, use `npm.cmd` in place of `npm`.
+Open **http://localhost:3000**. Use `npm.cmd` in PowerShell if execution policy blocks `npm.ps1`.
 
-Without Supabase environment variables, the app runs in a clearly labeled **local demo**. Changes persist in this browser. The sidebar account selector switches between Maya, Jordan, Alex, and the two organization coordinators. Demo registration creates a local profile; it does not store a password or send email. To reset the fixtures, remove the `commonly-demo-v1` localStorage entry through browser developer tools.
+## Two explicit modes
 
-## What works
+- **Demo (default):** browser-local sample accounts and persistent fixtures. No cloud credentials needed. Set `APP_MODE=demo`. Fictional events use Williamsburg House of Mercy and Williamsburg Regional Library as example groups.
+- **Live:** Auth0 Universal Login plus PostgreSQL, ready to connect to DigitalOcean Managed PostgreSQL. Set `APP_MODE=live` only after completing the setup guide. Missing configuration fails rather than silently falling back to demo.
 
-- Mockup-inspired responsive home, sidebar, search, impact card, and photo event cards.
-- Discovery by keyword, city, organization, and volunteer task; shareable filter URLs.
-- Event details, resources, task capacities, reservations/withdrawal, and event conversations.
-- Volunteer profile, image upload, bio, service history, and verified hours.
-- Organization group editor and Event Hub with upcoming, previous, and cancelled events.
-- Event creation with weekly/biweekly recurrence, individual occurrence editing, cancellation, and attendance verification.
-- Community group pages, share links, and a Messages page linking to event threads.
-- Live Supabase integration and a SQL migration that enforces authorization and transactional business rules.
+The Supabase integration has been removed. No real Supabase users/data needed preserving. Provider wiring is implemented, but the team's real Auth0 callback and hosted DigitalOcean deployment still require credentials/provisioning and verification. A teammate owns DigitalOcean setup; the team has $200 in credits. No cloud resources were created by this change.
 
-The demo fixtures contain **fictional** opportunities associated with Williamsburg House of Mercy and Williamsburg Regional Library. They are not real event announcements or official organization accounts.
+## Features
 
-## Connect Supabase
+Profiles and verified service hours; organization groups; event creation, finite weekly/biweekly recurrence, editing and cancellation; task reservations; discovery filters; event conversations; and responsive community/event pages. Live conversations poll every five seconds while visible. Avatars are capped at 2 MB and stored privately in PostgreSQL, so this MVP needs no additional object-storage service.
 
-1. Create a dedicated Supabase project and copy `.env.example` to `.env.local`.
-2. Set `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, and `NEXT_PUBLIC_SITE_URL`. The site URL should be `http://localhost:3000` locally, or the actual HTTPS origin when deployed.
-3. Run [the migration](supabase/migrations/202609260001_foundation.sql) in the project's SQL editor. It creates the tables, auth trigger, RLS/grants, authorized read/write functions, avatar bucket/policies, and Realtime publication entry. Run it once on a fresh project, or use your team's normal Supabase migration workflow.
-4. Under Auth URL configuration, set the Site URL and allow `<site-url>/auth/confirm`. Enable email/password authentication. With token-hash email templates, use `<site-url>/auth/confirm?token_hash={{ .TokenHash }}&type=email`; the callback also supports PKCE `code` exchange. Test real confirmation delivery with your project's configured email provider.
-5. Restart the development server. The demo banner/account switcher disappears; new users now authenticate through Supabase. Organization users create their group before creating events.
-
-Server secrets are never sent to the browser. Ordinary reads and writes use the signed-in user's session; `app_command` checks identity/ownership internally. Public projections omit unrelated profiles, attendee identities, emails, and group owner IDs. Only authorized participants can subscribe to comment changes.
-
-### Seed the connected demo project
-
-Set these server-only entries in `.env.local`:
-
-```dotenv
-SUPABASE_SERVICE_ROLE_KEY=your-demo-project-service-role-key
-ALLOW_DEMO_SEED=true
-SEED_PROJECT_REF=your-demo-project-reference
-SEED_PASSWORD=choose-a-local-demo-password-at-least-12-characters
-```
-
-Then run:
-
-```sh
-npm run seed
-```
-
-`SEED_PROJECT_REF` must match the target Supabase hostname (localhost is also allowed). The script creates `maya@commonly.example`, `jordan@commonly.example`, `alex@commonly.example`, `mercy@commonly.example`, and `library@commonly.example`, with the password you supplied. The last two are organization owners. These intentionally fictional addresses are preconfirmed by the seed script and do not receive email.
-
-There are two groups, five future event occurrences, one completed event, task capacities, reservations, a sample message, and verified attendance. Future dates are relative to the first seed run in `America/New_York`. Reruns preserve existing fixture records and passwords. The script is resumable if interrupted; use a fresh demo project when you want a completely fresh fixture set.
-
-## Verification
+## Checks and database tools
 
 ```sh
 npm run typecheck
 npm run lint
 npm test
 npm run build
+npm run start
+# In a second terminal, with the production demo running:
 npm run test:e2e
 ```
 
-Browser tests use a production build at localhost:3000 and start a server if needed. Windows uses installed Chrome. On other systems, install the Playwright Chromium browser first with `npx playwright install chromium`. Run the E2E suite without live Supabase credentials; it exercises the persistent local demo. Desktop/mobile screenshots are saved under `.artifacts/` (ignored by Git).
+Database tools read ignored `.env.local` or shell variables:
 
-Database tests execute the actual migration in embedded PostgreSQL (PGlite), supplying only the Auth/Storage platform primitives. They verify private data restrictions, organization isolation, reservations and capacity, attendance bounds/revisions, cancellation, and transactional recurrence. The harness serializes requests; a hosted multi-connection race test is still needed to validate deployment-level concurrency. Hosted email confirmation, Storage uploads, and Realtime delivery must also be smoke-tested against the configured project.
+```sh
+npm run db:migrate
+npm run db:grant-runtime
+npm run seed
+```
 
-Use `npm run format` for consistent source formatting. Dependencies and the lockfile are pinned. `npm run start` serves the production build.
+Use these only after configuring the designated database as described in the handoff. Migration checksums prevent silent edits to applied migrations. Seeds are transactional/idempotent and do not create Auth0 accounts. Unit/database tests run actual portable SQL in PGlite; they do not require a hosted database. Independent-connection concurrency, actual Auth0 login/callback/logout, and cloud deployment need separate live verification.
 
 ## Structure
 
 ```text
-src/app/               Next.js routes, layout, global styles, Server Actions
-src/components/        Shared shell, feature screens, forms, event thread, state adapter
-src/lib/               Domain rules, types, fixtures, demo adapter, Supabase clients
-src/proxy.ts           Supabase cookie refresh
-supabase/migrations/   Database schema, RLS, transactions, Storage, Realtime
-scripts/seed.ts        Idempotent connected demo seed
-tests/                 Domain, database, and browser flow checks
-public/images/         Bundled photography
-docs/MVP_SPEC.md        Approved product and architecture contract
+src/app/              Routes, Server Actions, avatar and health endpoints
+src/components/       Mockup-based UI and demo/live state adapter
+src/lib/auth0.ts      Auth0 SDK client
+src/lib/db/           PostgreSQL pool, TLS, transaction-local identity
+src/lib/              Domain rules, fixtures, types, explicit mode config
+database/migrations/ Portable schema, RLS, authorized functions
+scripts/              Migrate, grant restricted runtime role, seed
+tests/                Domain, database, integration-boundary, browser checks
+.do/app.yaml          DigitalOcean deployment template (not provisioned)
+Dockerfile            Node 24 standalone Next.js production image
+docs/                 Product contract and team guides
 ```
 
-## Deliberate foundation limits
+Use `npm run format` for formatting. Keep secrets out of Git and the Docker build context. The snapshot read targets hackathon-sized data; move filtering/pagination into database queries as data grows.
 
-One organization owner per group; one task reservation per volunteer per occurrence; finite recurrence; text-only event threads. No email event streaming, reminders, staff invitations, waitlists, monthly goal editing, or direct messaging.
-
-For hackathon-sized datasets the server returns an authorized snapshot, and the client filters/paginates it. Replace this with database filtering and cursor pagination as the dataset grows. Initial reads are server-rendered; mutation refreshes and Realtime update the client snapshot. `src/lib/types.ts` contains schema-aligned types; Supabase-generated database types can replace them when a project is linked.
-
-Attendance verification can only be performed after an event ends, for a noncancelled event, by its owner. The sidebar's demo account switch is intentionally absent in live mode. A volunteer's header action discovers opportunities; organization accounts see **Create event**.
-
-## Photography
-
-Bundled illustrative images from Unsplash; they do not depict the named organizations or imply affiliation:
-
-- Volunteers: [source image](https://images.unsplash.com/photo-1593113598332-cd288d649433)
-- Library: [source image](https://images.unsplash.com/photo-1507842217343-583bb7270b66)
-- Learning: [source image](https://images.unsplash.com/photo-1503676260728-1c00da094a0b)
-- Kitchen: [source image](https://images.unsplash.com/photo-1556911220-bff31c812dba)
+Bundled illustrative photography from Unsplash does not depict or imply affiliation with the named organizations: [volunteers](https://images.unsplash.com/photo-1593113598332-cd288d649433), [library](https://images.unsplash.com/photo-1507842217343-583bb7270b66), [learning](https://images.unsplash.com/photo-1503676260728-1c00da094a0b), [kitchen](https://images.unsplash.com/photo-1556911220-bff31c812dba).

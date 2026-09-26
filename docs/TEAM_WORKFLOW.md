@@ -16,7 +16,7 @@ npm run dev
 
 Start this sequence with a clean working tree. If you have unfinished edits, first use the preservation steps below. `--ff-only` stops when local and remote history diverge; use the rejected-push procedure if the extra local commits are your unpublished work.
 
-**Pulling** downloads and integrates code. **Committing** saves it locally. **Pushing** publishes commits to GitHub. Teammates cannot pull a commit that has not been pushed. The foundation commit is `a7ab979`; the maintainer must publish it to `origin/main` before teammates can retrieve it. Use `git fetch origin` followed by `git log --oneline origin/main..main` to see local main commits not yet on the remote.
+**Pulling** downloads and integrates code. **Committing** saves it locally. **Pushing** publishes commits to GitHub. Teammates cannot pull a commit that has not been pushed. Use `git fetch origin` followed by `git log --oneline origin/main..main` to see local main commits not yet on the remote; the maintainer must publish them before teammates can retrieve them.
 
 ## 2. Check, commit, and push
 

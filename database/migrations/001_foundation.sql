@@ -1,10 +1,14 @@
+-- Fresh PostgreSQL baseline; no Supabase schemas, extensions, or services required.
+-- Apply as the migration owner, never the restricted application login.
+do $$ begin if not exists(select 1 from pg_roles where rolname='commonly_runtime') then create role commonly_runtime nologin; end if; end $$;
 create schema if not exists private;
 revoke all on schema private from public;
-grant usage on schema private to authenticated, anon;
+grant usage on schema private to commonly_runtime;
 
 create table public.users (
- id uuid primary key references auth.users(id) on delete cascade,
- role text not null check (role in ('volunteer','organization')),
+ id uuid primary key default gen_random_uuid(),
+ auth0_sub text not null unique check(length(auth0_sub) between 3 and 255),
+ role text check (role in ('volunteer','organization')),
  created_at timestamptz not null default now()
 );
 create table public.profiles (
@@ -66,14 +70,18 @@ create index signups_task on public.signups(task_id,status);
 create index signups_volunteer on public.signups(volunteer_id);
 create index comments_event on public.event_comments(event_id,created_at,id);
 
+create function private.actor_id() returns uuid language sql stable set search_path='' as $$
+ select nullif(current_setting('app.user_id',true),'')::uuid;
+$$;
+
 create function private.owns_group(g uuid) returns boolean language sql stable security definer set search_path='' as $$
- select exists(select 1 from public.groups where id=g and owner_id=auth.uid());
+ select exists(select 1 from public.groups where id=g and owner_id=private.actor_id());
 $$;
 create function private.owns_event(e uuid) returns boolean language sql stable security definer set search_path='' as $$
  select exists(select 1 from public.events where id=e and private.owns_group(group_id));
 $$;
 create function private.can_read_thread(e uuid) returns boolean language sql stable security definer set search_path='' as $$
- select private.owns_event(e) or exists(select 1 from public.signups where event_id=e and volunteer_id=auth.uid() and status='active');
+ select private.owns_event(e) or exists(select 1 from public.signups where event_id=e and volunteer_id=private.actor_id() and status='active');
 $$;
 
 alter table public.users enable row level security;
@@ -84,36 +92,60 @@ alter table public.events enable row level security;
 alter table public.event_tasks enable row level security;
 alter table public.signups enable row level security;
 alter table public.event_comments enable row level security;
-revoke all on public.users,public.profiles,public.groups,public.event_series,public.events,public.event_tasks,public.signups,public.event_comments from anon,authenticated;
-grant select on public.users,public.profiles,public.signups,public.event_comments,public.event_series to authenticated;
-grant select on public.events,public.event_tasks to anon,authenticated;
-grant select(id,name,slug,description,city,website_url,created_at,updated_at) on public.groups to anon,authenticated;
-create policy own_user on public.users for select to authenticated using(id=auth.uid());
-create policy own_profile on public.profiles for select to authenticated using(user_id=auth.uid());
-create policy public_groups on public.groups for select using(true);
-create policy own_series on public.event_series for select to authenticated using(private.owns_group(group_id));
-create policy public_events on public.events for select using(true);
-create policy public_tasks on public.event_tasks for select using(true);
-create policy scoped_signups on public.signups for select to authenticated using(volunteer_id=auth.uid() or private.owns_event(event_id));
-create policy scoped_comments on public.event_comments for select to authenticated using(private.can_read_thread(event_id));
+revoke all on public.users,public.profiles,public.groups,public.event_series,public.events,public.event_tasks,public.signups,public.event_comments from public,commonly_runtime;
+grant usage on schema public to commonly_runtime;
+grant select on public.users,public.profiles,public.signups,public.event_comments,public.event_series,public.events,public.event_tasks to commonly_runtime;
+grant select(id,name,slug,description,city,website_url,created_at,updated_at) on public.groups to commonly_runtime;
+create policy own_user on public.users for select to commonly_runtime using(id=private.actor_id());
+create policy own_profile on public.profiles for select to commonly_runtime using(user_id=private.actor_id());
+create policy public_groups on public.groups for select to commonly_runtime using(true);
+create policy own_series on public.event_series for select to commonly_runtime using(private.owns_group(group_id));
+create policy public_events on public.events for select to commonly_runtime using(true);
+create policy public_tasks on public.event_tasks for select to commonly_runtime using(true);
+create policy scoped_signups on public.signups for select to commonly_runtime using(volunteer_id=private.actor_id() or private.owns_event(event_id));
+create policy scoped_comments on public.event_comments for select to commonly_runtime using(private.can_read_thread(event_id));
 
--- Role is initialized once; later edits to auth metadata cannot grant organization ownership.
-create function private.on_auth_user() returns trigger language plpgsql security definer set search_path='' as $$
+-- Only the trusted server can connect with commonly_runtime. Subjects come from Auth0's verified session.
+-- This function never accepts a caller-selected role and does not change an existing user's identity.
+create function public.app_resolve_user(subject text, display_name text) returns uuid language plpgsql security definer set search_path='' as $$
+declare actor uuid;
 begin
- insert into public.users(id,role) values(new.id,case when new.raw_user_meta_data->>'role'='organization' then 'organization' else 'volunteer' end);
- insert into public.profiles(user_id,display_name) values(new.id,left(coalesce(nullif(trim(new.raw_user_meta_data->>'display_name'),''),'Community member'),80));
- return new;
+ if subject is null or length(subject) not between 3 and 255 then raise exception 'Invalid identity.'; end if;
+ insert into public.users(auth0_sub) values(subject) on conflict(auth0_sub) do nothing;
+ select id into actor from public.users where auth0_sub=subject;
+ insert into public.profiles(user_id,display_name) values(actor,left(case when length(trim(display_name))>=2 then trim(display_name) else 'Community member' end,80)) on conflict(user_id) do nothing;
+ return actor;
 end $$;
-create trigger auth_user_created after insert on auth.users for each row execute function private.on_auth_user();
+
+-- A bounded avatar per account keeps the hackathon deployment to one app and one database.
+create table public.profile_images(
+ user_id uuid primary key references public.users(id) on delete cascade,
+ mime_type text not null check(mime_type in ('image/jpeg','image/png','image/webp')),
+ content bytea not null check(octet_length(content) between 1 and 2097152),
+ updated_at timestamptz not null default now()
+);
+alter table public.profile_images enable row level security;
+revoke all on public.profile_images from public,commonly_runtime;
+grant select on public.profile_images to commonly_runtime;
+create policy own_image on public.profile_images for select to commonly_runtime using(user_id=private.actor_id());
+create function public.app_save_avatar(mime text, bytes bytea) returns text language plpgsql security definer set search_path='' as $$
+declare actor uuid:=private.actor_id(); path text;
+begin
+ if actor is null or not exists(select 1 from public.users where id=actor and role is not null) then raise exception 'Sign in and complete your profile first.' using errcode='28000'; end if;
+ insert into public.profile_images(user_id,mime_type,content) values(actor,mime,bytes) on conflict(user_id) do update set mime_type=excluded.mime_type,content=excluded.content,updated_at=clock_timestamp();
+ path:='/api/avatar?v='||gen_random_uuid()::text;
+ update public.profiles set avatar_path=path,updated_at=now() where user_id=actor;
+ return path;
+end $$;
 
 -- One deliberately narrow public read contract. No emails, owner IDs (except one's own), or unrelated attendees.
 create function public.app_snapshot() returns jsonb language sql stable security definer set search_path='' as $$
  select jsonb_build_object(
- 'profile',(select jsonb_build_object('id',u.id,'role',u.role,'display_name',p.display_name,'bio',p.bio,'city',p.city,'avatar_path',p.avatar_path) from public.users u join public.profiles p on p.user_id=u.id where u.id=auth.uid()),
- 'groups',coalesce((select jsonb_agg((to_jsonb(g)-'owner_id') || case when g.owner_id=auth.uid() then jsonb_build_object('owner_id',g.owner_id) else '{}'::jsonb end) from public.groups g),'[]'::jsonb),
+ 'profile',(select jsonb_build_object('id',u.id,'role',u.role,'display_name',p.display_name,'bio',p.bio,'city',p.city,'avatar_path',p.avatar_path) from public.users u join public.profiles p on p.user_id=u.id where u.id=private.actor_id() and u.role is not null),
+ 'groups',coalesce((select jsonb_agg((to_jsonb(g)-'owner_id') || case when g.owner_id=private.actor_id() then jsonb_build_object('owner_id',g.owner_id) else '{}'::jsonb end) from public.groups g),'[]'::jsonb),
  'events',coalesce((select jsonb_agg(to_jsonb(e) order by e.starts_at,e.id) from public.events e),'[]'::jsonb),
  'tasks',coalesce((select jsonb_agg(to_jsonb(t)||jsonb_build_object('reserved',(select count(*) from public.signups s where s.task_id=t.id and s.status='active'))) from public.event_tasks t),'[]'::jsonb),
- 'signups',coalesce((select jsonb_agg(to_jsonb(s)||jsonb_build_object('display_name',p.display_name)) from public.signups s join public.profiles p on p.user_id=s.volunteer_id where s.volunteer_id=auth.uid() or private.owns_event(s.event_id)),'[]'::jsonb),
+ 'signups',coalesce((select jsonb_agg(to_jsonb(s)||jsonb_build_object('display_name',p.display_name)) from public.signups s join public.profiles p on p.user_id=s.volunteer_id where s.volunteer_id=private.actor_id() or private.owns_event(s.event_id)),'[]'::jsonb),
  'comments',coalesce((select jsonb_agg((to_jsonb(c)-'body')||jsonb_build_object('body',case when c.hidden_at is null then c.body else '' end,'display_name',p.display_name) order by c.created_at,c.id) from public.event_comments c join public.profiles p on p.user_id=c.author_id where private.can_read_thread(c.event_id)),'[]'::jsonb)
  );
 $$;
@@ -121,21 +153,25 @@ $$;
 -- All writes go through this authorized transactional boundary; direct client table writes are revoked.
 create function public.app_command(kind text, payload jsonb default '{}') returns jsonb language plpgsql security definer set search_path='' as $$
 declare
- actor uuid := auth.uid(); actor_role text; gid uuid; eid uuid; sid uuid; tid uuid;
+ actor uuid := private.actor_id(); actor_role text; gid uuid; eid uuid; sid uuid; tid uuid;
  ev public.events; task public.event_tasks; signup public.signups; comment public.event_comments;
  row_data jsonb; item jsonb; idx int; amount int; total int; step int; duration int;
  local_start timestamp; start_instant timestamptz; zone text; series uuid; first_id uuid;
 begin
  if actor is null then raise exception 'Sign in to continue.' using errcode='28000'; end if;
- select role into actor_role from public.users where id=actor;
- if actor_role is null then raise exception 'Account profile is missing.'; end if;
+ select role into actor_role from public.users where id=actor for update;
+ if not found then raise exception 'Account profile is missing.'; end if;
+ if kind='onboard' then
+  if actor_role is not null then raise exception 'Your account role is already set.'; end if;
+  if payload->>'role' is null or payload->>'role' not in ('volunteer','organization') then raise exception 'Choose a valid account role.'; end if;
+  update public.users set role=payload->>'role' where id=actor;
+  update public.profiles set display_name=trim(payload->>'display_name'),city=trim(payload->>'city'),updated_at=now() where user_id=actor;
+  return jsonb_build_object('id',actor);
+ end if;
+ if actor_role is null then raise exception 'Complete your profile first.'; end if;
 
  if kind='profile' then
   update public.profiles set display_name=trim(payload->>'display_name'),bio=coalesce(payload->>'bio',''),city=trim(payload->>'city'),updated_at=now() where user_id=actor;
- elsif kind='avatar' then
-  if payload->>'path' not like actor::text||'/%' then raise exception 'Invalid avatar path.'; end if;
-  if not exists(select 1 from storage.objects where bucket_id='avatars' and name=payload->>'path' and owner_id=actor::text) then raise exception 'Upload the image first.'; end if;
-  update public.profiles set avatar_path=payload->>'path',updated_at=now() where user_id=actor;
  elsif kind='group' then
   if actor_role<>'organization' then raise exception 'Organization account required.' using errcode='42501'; end if;
   select id into gid from public.groups where owner_id=actor;
@@ -235,16 +271,8 @@ begin
  return jsonb_build_object('id',coalesce(eid,actor));
 end $$;
 
-revoke all on function public.app_snapshot() from public;
-grant execute on function public.app_snapshot() to anon,authenticated;
-revoke all on function public.app_command(text,jsonb) from public;
-grant execute on function public.app_command(text,jsonb) to authenticated;
+-- Functions use a fixed search path. Table writes are never granted to the application role.
+revoke all on function public.app_snapshot(),public.app_command(text,jsonb),public.app_resolve_user(text,text),public.app_save_avatar(text,bytea) from public;
+grant execute on function public.app_snapshot(),public.app_command(text,jsonb),public.app_resolve_user(text,text),public.app_save_avatar(text,bytea) to commonly_runtime;
 revoke all on all functions in schema private from public;
-grant execute on function private.owns_group(uuid),private.owns_event(uuid),private.can_read_thread(uuid) to anon,authenticated;
-
-insert into storage.buckets(id,name,public,file_size_limit,allowed_mime_types) values('avatars','avatars',false,2097152,array['image/jpeg','image/png','image/webp']) on conflict(id) do nothing;
-create policy own_avatar_insert on storage.objects for insert to authenticated with check(bucket_id='avatars' and (storage.foldername(name))[1]=auth.uid()::text);
-create policy own_avatar_read on storage.objects for select to authenticated using(bucket_id='avatars' and (storage.foldername(name))[1]=auth.uid()::text);
-create policy own_avatar_delete on storage.objects for delete to authenticated using(bucket_id='avatars' and (storage.foldername(name))[1]=auth.uid()::text);
--- Supabase projects provide this publication; the local SQL test harness creates a substitute.
-alter publication supabase_realtime add table public.event_comments;
+grant execute on function private.actor_id(),private.owns_group(uuid),private.owns_event(uuid),private.can_read_thread(uuid) to commonly_runtime;

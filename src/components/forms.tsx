@@ -599,6 +599,44 @@ export function AuthForm({ mode }: { mode: 'sign-in' | 'sign-up' }) {
     router = useRouter();
   const [role, setRole] = useState('volunteer'),
     signup = mode === 'sign-up';
+  if (!demo)
+    return (
+      <div className="auth-layout">
+        <div className="auth-intro">
+          <span className="sparkle-box">
+            <Sparkle size={28} />
+          </span>
+          <p className="eyebrow">DO GOOD, TOGETHER</p>
+          <h1>
+            Your community.
+            <br />
+            Your kind of good.
+          </h1>
+          <p>A little good starts with showing up.</p>
+        </div>
+        <section className="panel auth-panel">
+          <h2>{signup ? 'Join your community' : 'Welcome back'}</h2>
+          <p className="muted">
+            Continue securely with Auth0.{' '}
+            {signup
+              ? 'You’ll choose Volunteer or Organization when you set up your profile.'
+              : 'Your next good thing is waiting.'}
+          </p>
+          <a
+            className="button full"
+            href={signup ? '/auth/login?screen_hint=signup' : '/auth/login'}
+          >
+            {signup ? 'Create account' : 'Sign in'} with Auth0 <ArrowRight size={17} />
+          </a>
+          <p className="auth-switch">
+            {signup ? 'Already have an account?' : 'New here?'}{' '}
+            <Link className="text-link" href={signup ? '/sign-in' : '/sign-up'}>
+              {signup ? 'Sign in' : 'Create account'}
+            </Link>
+          </p>
+        </section>
+      </div>
+    );
   return (
     <div className="auth-layout">
       <div className="auth-intro">
@@ -719,6 +757,71 @@ export function AuthForm({ mode }: { mode: 'sign-in' | 'sign-up' }) {
         </p>
       </section>
     </div>
+  );
+}
+export function OnboardingForm() {
+  const { data, act, busy } = useApp();
+  const router = useRouter();
+  const [role, setRole] = useState('volunteer');
+  if (!data.onboarding)
+    return (
+      <Empty title="You’re all set">
+        <Link href="/" className="button">
+          Back to home
+        </Link>
+      </Empty>
+    );
+  return (
+    <section className="panel form-panel">
+      <PageHeading
+        eyebrow="WELCOME TO COMMONLY"
+        title="Find your place"
+        description="Choose how you want to help. This account role is set once."
+      />
+      <form
+        className="form-stack"
+        onSubmit={async (e) => {
+          e.preventDefault();
+          if (await act('onboard', { ...Object.fromEntries(new FormData(e.currentTarget)), role }))
+            router.push(role === 'organization' ? '/my-group' : '/profile');
+        }}
+      >
+        <fieldset className="role-picker">
+          <legend>I’m here as a</legend>
+          {(['volunteer', 'organization'] as const).map((value) => (
+            <button
+              key={value}
+              type="button"
+              aria-pressed={role === value}
+              className={role === value ? 'selected' : ''}
+              onClick={() => setRole(value)}
+            >
+              {value === 'volunteer' ? <Sparkle size={18} /> : <Users size={18} />}{' '}
+              {value === 'volunteer' ? 'Volunteer' : 'Organization'}
+            </button>
+          ))}
+        </fieldset>
+        <Field
+          label="Display name"
+          name="display_name"
+          defaultValue={data.onboarding.display_name}
+          minLength={2}
+          maxLength={80}
+          required
+        />
+        <Field
+          label="City"
+          name="city"
+          defaultValue="Williamsburg"
+          minLength={2}
+          maxLength={100}
+          required
+        />
+        <button className="button" disabled={busy}>
+          {busy ? 'Saving…' : 'Complete profile'} <ArrowRight size={17} />
+        </button>
+      </form>
+    </section>
   );
 }
 function Field({

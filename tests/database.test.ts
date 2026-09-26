@@ -8,27 +8,21 @@ import type { Snapshot } from '../src/lib/types';
 test('migration and database permission / integrity contracts', async (t) => {
   const db = new PGlite();
   try {
-    await db.exec(`create role anon; create role authenticated; create schema auth; create schema storage;
- create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
- grant usage on schema auth to anon,authenticated; grant execute on function auth.uid() to anon,authenticated;
- create table auth.users(id uuid primary key,raw_user_meta_data jsonb);
- create table storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]);
- create table storage.objects(id uuid default gen_random_uuid(),bucket_id text,name text,owner_id text default auth.uid()::text);
- alter table storage.objects enable row level security;
- create function storage.foldername(name text) returns text[] language sql as $$ select string_to_array(name,'/') $$;
- create publication supabase_realtime;`);
     await db.exec(
-      await readFile(
-        new URL('../supabase/migrations/202609260001_foundation.sql', import.meta.url),
-        'utf8',
-      ),
+      await readFile(new URL('../database/migrations/001_foundation.sql', import.meta.url), 'utf8'),
     );
     const f = makeFixtures();
-    for (const p of f.profiles)
-      await db.query('insert into auth.users values($1,$2)', [
+    for (const p of f.profiles) {
+      await db.query('insert into public.users(id,auth0_sub,role) values($1,$2,$3)', [
         p.id,
-        JSON.stringify({ display_name: p.display_name, role: p.role }),
+        `demo:${p.id}`,
+        p.role,
       ]);
+      await db.query(
+        'insert into public.profiles(user_id,display_name,bio,city) values($1,$2,$3,$4)',
+        [p.id, p.display_name, p.bio, p.city],
+      );
+    }
     async function insert(table: string, rows: Record<string, unknown>[]) {
       for (const row of rows) {
         const keys = Object.keys(row);
@@ -53,10 +47,10 @@ test('migration and database permission / integrity contracts', async (t) => {
       'event_comments',
       f.comments.map(({ display_name: _, ...r }) => r),
     );
-    async function as(id: string | null, role = 'authenticated') {
+    async function as(id: string | null) {
       await db.exec('reset role');
-      await db.query("select set_config('request.jwt.claim.sub',$1,false)", [id ?? '']);
-      await db.exec(`set role ${role}`);
+      await db.query("select set_config('app.user_id',$1,false)", [id ?? '']);
+      await db.exec('set role commonly_runtime');
     }
     async function command(kind: string, payload: unknown) {
       return db.query('select public.app_command($1,$2)', [kind, JSON.stringify(payload)]);
@@ -66,7 +60,7 @@ test('migration and database permission / integrity contracts', async (t) => {
         .app_snapshot;
     }
     await t.test('anonymous sees public projections without private identities', async () => {
-      await as(null, 'anon');
+      await as(null);
       const s = await snapshot();
       assert.equal(s.profile, null);
       assert.equal(s.groups.length, 2);
@@ -76,9 +70,71 @@ test('migration and database permission / integrity contracts', async (t) => {
       await assert.rejects(db.query('select owner_id from public.groups'), /permission denied/);
       await assert.rejects(
         command('join', { event_id: fixtureId(20), task_id: fixtureId(200) }),
-        /permission denied/,
+        /Sign in/,
       );
     });
+    await t.test(
+      'first login is idempotent, onboarding is once-only, and subject mapping stays private',
+      async () => {
+        await as(null);
+        const first = await db.query<{ id: string }>(
+          "select public.app_resolve_user('auth0|test-owner','First Organizer') as id",
+        );
+        const again = await db.query<{ id: string }>(
+          "select public.app_resolve_user('auth0|test-owner','Changed Name') as id",
+        );
+        const id = first.rows[0].id;
+        assert.equal(id, again.rows[0].id);
+        await as(id);
+        assert.equal((await snapshot()).profile, null);
+        await assert.rejects(
+          command('group', {
+            name: 'New group',
+            description: 'My community group',
+            city: 'Williamsburg',
+          }),
+          /Complete your profile/,
+        );
+        await command('onboard', {
+          role: 'organization',
+          display_name: 'First Organizer',
+          city: 'Williamsburg',
+        });
+        assert.equal((await snapshot()).profile?.role, 'organization');
+        await assert.rejects(
+          command('onboard', { role: 'volunteer', display_name: 'Changed', city: 'Williamsburg' }),
+          /already set/,
+        );
+        assert.ok(!JSON.stringify(await snapshot()).includes('auth0|test-owner'));
+      },
+    );
+    await t.test(
+      'avatar data is private, capped, and saved through the owner function',
+      async () => {
+        await as(fixtureId(1));
+        await db.query('select public.app_save_avatar($1,$2)', [
+          'image/png',
+          new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 0]),
+        ]);
+        assert.equal((await db.query('select * from public.profile_images')).rows.length, 1);
+        assert.match((await snapshot()).profile!.avatar_path!, /^\/api\/avatar\?v=/);
+        await assert.rejects(
+          db.query('select public.app_save_avatar($1,$2)', ['image/svg+xml', new Uint8Array([1])]),
+          /check constraint/,
+        );
+        await assert.rejects(
+          db.query('select public.app_save_avatar($1,$2)', ['image/png', new Uint8Array(2097153)]),
+          /check constraint/,
+        );
+        await as(fixtureId(2));
+        assert.equal((await db.query('select * from public.profile_images')).rows.length, 0);
+        await as(null);
+        await assert.rejects(
+          db.query('select public.app_save_avatar($1,$2)', ['image/png', new Uint8Array([1])]),
+          /Sign in/,
+        );
+      },
+    );
     await t.test(
       'volunteer sees only their own records and cannot forge role or hours',
       async () => {

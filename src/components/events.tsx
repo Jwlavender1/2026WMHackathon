@@ -18,7 +18,6 @@ import {
 import { useEffect, useState } from 'react';
 import { useApp } from './provider';
 import { eventPhase, formatDate, initials } from '@/lib/domain';
-import { browserClient } from '@/lib/supabase/client';
 import type { Event } from '@/lib/types';
 
 export const photos = {
@@ -330,27 +329,23 @@ function EventThread({ event, allowed }: { event: Event; allowed: boolean }) {
       .sort((a, b) => a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id));
   useEffect(() => {
     if (demo || !allowed) return;
-    const client = browserClient();
-    const channel = client
-      .channel(`event-${event.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'event_comments',
-          filter: `event_id=eq.${event.id}`,
-        },
-        () => void refresh(),
-      )
-      .subscribe((status) => {
-        setConnection(
-          status === 'SUBSCRIBED' ? 'Live conversation' : 'Connection interrupted · use refresh',
-        );
-        if (status === 'SUBSCRIBED') void refresh();
-      });
+    let stopped = false,
+      inFlight = false;
+    const update = async () => {
+      if (stopped || inFlight || document.hidden) return;
+      inFlight = true;
+      const ok = await refresh();
+      if (!stopped)
+        setConnection(ok ? 'Updates every 5 seconds' : 'Connection interrupted · use refresh');
+      inFlight = false;
+    };
+    const timer = setInterval(() => void update(), 5000);
+    void update();
+    document.addEventListener('visibilitychange', update);
     return () => {
-      void client.removeChannel(channel);
+      stopped = true;
+      clearInterval(timer);
+      document.removeEventListener('visibilitychange', update);
     };
   }, [demo, allowed, event.id, refresh]);
   const [now, setNow] = useState(Date.now);

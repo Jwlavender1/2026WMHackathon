@@ -1,62 +1,56 @@
-# Auth0 + DigitalOcean handoff
+# Auth0 + DigitalOcean setup
 
-**Decision:** use Auth0 for authentication and DigitalOcean for managed PostgreSQL and hosting. **Status:** selected, not implemented or provisioned. Current code still uses Supabase for live services and browser storage for the local demo. Target this migration next, before adding more Supabase-dependent features.
+**Status:** provider migration implemented locally; real Auth0 login and DigitalOcean deployment still need verification. No cloud resources have been provisioned. The existing browser demo remains usable. There is no real Supabase data to preserve.
 
-## What the project owner needs to provide
+## Confirmed decisions and owners
 
-| Needed                               | Details / where it goes                                                                                                                                                    |
-| ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Prize requirements and demo deadline | Link or exact rules for both sponsor prizes, plus submission deadline/time zone. We have not verified eligibility; simply adding an SDK may not meet the rules.            |
-| Budget and account owner             | DigitalOcean credits/spending limit, including storage, and who can configure Auth0/DO and connect the GitHub repository. A region preference is optional.                 |
-| Auth0 application                    | Tenant domain and Client ID from a **Regular Web Application**. Start with hosted Universal Login and email/password; additional social providers can follow.              |
-| DigitalOcean resources               | Team/project, existing App Platform app/URL and PostgreSQL cluster details, if already created. Otherwise report that they are not created yet; we can prepare code first. |
-| Existing data                        | Whether Supabase contains real users/events/uploads that must be preserved, or only disposable test data. Do not assume that resetting data is acceptable.                 |
+- Prize categories are “Best Use of…” Auth0 and DigitalOcean, as supplied by the user. Demonstrate real service usage in the submission; no further judging criteria have been supplied.
+- DigitalOcean credits: **$200**. A teammate owns account setup, resource selection, spending, and deployment. Credits are not an automatic spending cap; the owner should check current app/database pricing and set usage alerts.
+- Auth0 tenant: **dev-o0ar4rp3e14z4odp.us.auth0.com**.
+- Auth0 Client ID: **g3NM42mxEDRAB2wDbAdaxzJih3qw490F**. This and the domain are public identifiers, not secrets.
+- The user will supply the client secret locally when notified. The ignored local environment file has been prepared on the development machine, including a generated cookie secret. Other teammates create their own local file.
 
-Share non-secret identifiers in the project discussion. Put the Auth0 client secret and database credentials in ignored `.env.local` / DigitalOcean encrypted environment settings through the account owner; do not paste them into GitHub, documentation, or chat. We can generate the application's cookie-encryption secret during implementation; you do not need to supply one now.
+## Auth0 application owner
 
-## Recommended architecture
+1. In this tenant, confirm the supplied app is a **Regular Web Application** and enable the desired login connection (email/password is sufficient).
+2. Add Allowed Callback URL **http://localhost:3000/auth/callback** and Allowed Logout URL **http://localhost:3000**. Add the deployed HTTPS origin with the same callback path and the bare origin for logout once available.
+3. Put **AUTH0_CLIENT_SECRET** in ignored `.env.local`. Do not paste it into chat or Git. Keep the generated **AUTH0_SECRET** private; it encrypts session cookies. On another machine, generate a fresh 32-byte hex value into its local file using a cryptographic generator.
+4. Keep **APP_MODE=demo** until the PostgreSQL configuration below is ready. For live use set **APP_MODE=live** and **APP_BASE_URL=http://localhost:3000**, then restart.
 
-| Current dependency                       | Target                                                                                                                                          |
-| ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| Supabase Auth / cookie refresh           | Auth0 Next.js SDK, Universal Login, and server-validated sessions                                                                               |
-| `auth.users`, `auth.uid()`, auth trigger | Application-owned UUID users with a unique `auth0_sub` text field; idempotent first-login onboarding                                            |
-| Supabase database client/RPC             | Server-only PostgreSQL connection pool to DigitalOcean Managed PostgreSQL; preserve transactional reservations and attendance rules             |
-| Supabase-specific RLS context            | Portable policies/authorized functions using a verified, transaction-local application user ID; restricted runtime database role                |
-| Supabase Storage avatars                 | Proposed: private DigitalOcean Spaces bucket and authorized uploads/reads, subject to storage budget                                            |
-| Supabase Realtime                        | Proposed hackathon default: authorized short polling while the event thread is open, plus manual refresh; near-real-time rather than WebSockets |
-| Hosting                                  | DigitalOcean App Platform **web service** for Next.js; retain the current UI                                                                    |
+The SDK mounts `/auth/login`, `/auth/callback`, and `/auth/logout` through `src/proxy.ts`. First login opens in-app profile/role onboarding; later login preserves the existing role. [Auth0 Next.js SDK reference](https://auth0.github.io/nextjs-auth0/).
 
-App Platform can deploy from Git repositories and attach an existing managed database. Spaces provides an S3-compatible object API. [App Platform quickstart](https://docs.digitalocean.com/products/app-platform/getting-started/quickstart/), [managed database attachment](https://docs.digitalocean.com/products/app-platform/how-to/manage-databases/), [Spaces compatibility](https://docs.digitalocean.com/products/spaces/reference/s3-compatibility/).
+## DigitalOcean owner
 
-Keep Volunteer/Organization roles and group ownership in our application database. Use the verified Auth0 subject as the identity mapping, not an email address or a client-supplied user ID. Selecting an organization role grants access only to the user's own group; this does not require adopting Auth0's separate Organizations product.
+1. Choose **App Platform web service + Managed PostgreSQL** in the same available region. Use the existing $200 credits and review the total app/database cost before provisioning. No Droplet, Kubernetes, Spaces bucket, or additional messaging service is required for this MVP.
+2. Create an application database and separate database logins for migration ownership and restricted runtime access. Supply **MIGRATION_DATABASE_URL** to the migration operator and **DATABASE_URL** to the running app; never run the web app as the migration owner/admin. Set **DATABASE_APP_USER** to the existing restricted login name.
+3. Supply TLS trust information. Set **PGSSL_MODE=verify-full** for DigitalOcean. Use **PGSSL_CA_FILE** locally or **PGSSL_CA** with the cluster's CA PEM in deployment settings where required. If the cluster uses a publicly trusted certificate, Node's trust store can be used. Remote certificate verification cannot be disabled by this adapter. Add the app and approved developer IPs as trusted database sources. [Database security](https://docs.digitalocean.com/products/databases/postgresql/how-to/secure/).
+4. From a trusted development machine, install dependencies, set the migration variables, then run:
 
-The existing SQL migration **cannot run unchanged on ordinary PostgreSQL**: it refers to Supabase auth tables/functions, storage schemas, roles, and the Realtime publication. Write a portable migration and seed, and port the permission tests along with the adapter. A PostgreSQL connection string alone will not switch the current application.
+```sh
+npm run db:migrate
+npm run db:grant-runtime
+```
 
-## Auth0 setup to prepare
+The first creates portable tables, RLS, and authorized functions; the second grants the existing restricted login membership in **commonly_runtime**. The migration operator needs permission to create/grant this non-login role. The grant script rejects an admin/schema-owner login or one with existing user-table write privileges. Do not rewrite a successfully applied migration; add a new SQL file.
 
-For the planned SDK integration, configure:
+5. Connect GitHub repository **Jwlavender1/2026WMHackathon**, branch **main**, source directory **/**. Use the root Dockerfile and the template [../.do/app.yaml](../.do/app.yaml). Choose the paid instance size in the dashboard; the template deliberately omits resource purchase choices and database creation.
+6. Complete the template's empty encrypted runtime values: **AUTH0_CLIENT_SECRET**, **AUTH0_SECRET**, **DATABASE_URL**, and **PGSSL_CA** if needed. The public tenant/client values are prefilled. **APP_BASE_URL** binds to the app URL, **APP_MODE=live**, port **8080**, health path **/api/health**. Keep migration credentials out of the web service. Docker builds need no live credentials; runtime uses them. Database bindings are supported, but make sure a binding uses the restricted application login rather than the admin. [App environment variables](https://docs.digitalocean.com/products/app-platform/how-to/use-environment-variables/).
+7. Add the actual HTTPS URL to Auth0's allowed URLs, deploy, and run the checks below. Automatic deployment from main is disabled in the template; enable it only after the team agrees on release/migration ownership.
 
-- Allowed Callback URLs: `http://localhost:3000/auth/callback`, then the deployed HTTPS origin plus `/auth/callback`.
-- Allowed Logout URLs: `http://localhost:3000`, then the deployed HTTPS origin.
-- Local planned variables: `AUTH0_DOMAIN`, `AUTH0_CLIENT_ID`, `AUTH0_CLIENT_SECRET`, `AUTH0_SECRET`, and `APP_BASE_URL=http://localhost:3000`.
+**Health behavior:** live health checks validate Auth0 configuration and reach PostgreSQL to check that the snapshot function exists. This is not an Auth0 callback test. The Dockerfile, app template, and managed database connection still require verification in DigitalOcean; they have not been deployed from this workspace.
 
-The domain is the tenant hostname; secrets remain server-only. These are the current SDK conventions, **not routes/env variables implemented in this repository yet**. [Auth0 Next.js SDK setup](https://auth0.github.io/nextjs-auth0/).
+## Optional connected demo seed
 
-## DigitalOcean setup to prepare
+Set **ALLOW_DEMO_SEED=true** and **SEED_DATABASE_HOST** to the exact hostname from the intended demo database URL, then run `npm run seed`. It creates two groups, five future occurrences, one past event, sample reservations/hours/messages. Dates are relative to the first run; reruns preserve existing fixtures. It never creates passwords or Auth0 users.
 
-1. Confirm budget/credits before creating billable resources. Prefer one App Platform web service and a managed PostgreSQL cluster in the same available region; no Droplet/Kubernetes setup is necessary for this MVP.
-2. Connect `Jwlavender1/2026WMHackathon`, branch `main`, source directory `/` (the repository root). Planned commands: build `npm run build`, run `npm run start`. Match the listening port to App Platform's configured HTTP port. Pin the chosen Node version during deployment work.
-3. Supply the database host, port, database name, runtime username, and TLS CA details. Store its password/connection URL as secrets. Use a separate migration credential when broader schema permissions are needed.
-4. Restrict database access to the app and approved development sources. Configure TLS certificate verification using the cluster's provided CA/trust configuration. [DigitalOcean PostgreSQL connection security](https://docs.digitalocean.com/products/databases/postgresql/how-to/secure/).
-5. Bind server-only `DATABASE_URL` and required TLS configuration; add Auth0 variables and, if approved, Spaces bucket/region/endpoint credentials. App Platform supports database bindings and encrypted environment values. [Environment configuration](https://docs.digitalocean.com/products/app-platform/how-to/use-environment-variables/).
-6. Obtain the app's HTTPS URL and add it to Auth0's allowed URLs before testing login. A custom domain is optional. Prefer manual deploys during the migration, then decide whether main should auto-deploy.
+By default, fixture users have non-login `demo:` identities. To manage a sample group using a real Auth0 account, **before the first seed**, set **SEED_MERCY_AUTH0_SUB** and/or **SEED_LIBRARY_AUTH0_SUB** to the exact verified Auth0 subject (User ID) from the tenant. If that user already logged into Commonly, first finish onboarding as an organization. A rerun will not silently reassign ownership or overwrite a role. Otherwise, a real user can simply create their own group/events after onboarding.
 
-## Implementation sequence and completion criteria
+## Architecture and validation
 
-1. Build a portable PostgreSQL migration, connection layer, and idempotent seed; preserve internal UUIDs if there is real data to migrate. Keep the local demo usable.
-2. Replace authentication with Auth0 and add first-login profile/role onboarding. Implement authorization at every server mutation and verify the identity context cannot leak across pooled connections.
-3. Replace avatar storage and event-thread transport, update tests and environment templates, then remove Supabase dependencies after replacements work.
-4. Deploy on App Platform, apply migrations once through the designated owner, and seed a demo database if appropriate.
-5. Verify local and deployed login/logout, both roles, cross-organization denial, concurrent last-slot reservations, profile images, two-browser conversation updates, recurrence, and verified hours. Confirm persistence after a redeploy. Capture the actual Auth0 login flow and DigitalOcean app/database usage for the prize submission according to its rules.
+- Auth0 sessions establish identity; internal UUIDs remain the foreign keys. `auth0_sub` is unique and stays server-side. Roles/ownership stay in the application database.
+- Every DB operation uses one pooled connection, one transaction, and a transaction-local actor derived from the verified session. SQL functions validate ownership/capacity; the runtime role cannot directly mutate tables. This server role is never exposed to browsers.
+- Images are private PostgreSQL bytes, capped at 2 MB with MIME/signature validation and an authenticated no-cache avatar endpoint. This avoids extra service setup during the hackathon; object storage can replace it later if volume grows.
+- Event conversations poll authorized server reads every five seconds while visible. They are not WebSocket streams.
+- Unit/database checks cover portable SQL, role isolation, onboarding, attendance, avatars, TLS configuration, and identity cleanup after commit/rollback. Browser tests cover the local demo. Before the prize demo, verify actual login/callback/logout, both roles, two-user messaging, concurrent last-slot reservations across independent DB connections, image persistence after redeploy, recurrence, and recorded hours.
 
-Code preparation can start without cloud secrets. End-to-end verification and deployment need the configured accounts, credentials, and budget decisions above. Adding Auth0 variables to the current `.env.example` would be misleading until the adapter exists, so that template remains unchanged for now.
+Capture the real Auth0 login flow and the DigitalOcean app/database deployment for the prize submission. The demo deadline is still unspecified.
