@@ -107,7 +107,7 @@ Mutations return success data or a user-visible error. Database-shaped TypeScrip
     /messages                 Authorized event conversation list
     /community                Organization directory
 
-Turnout uses **primary #CE93D8 (purple)** and **secondary #FFF59D (yellow)**, with dark plum text and light backgrounds. **Dongle** is bundled locally for the wordmark, headings, navigation, and display numbers; system sans serif supports readable body copy and forms. There are no serif fonts. The home hero uses a community graphic and bold typography.
+Turnout uses **primary #CE93D8 (purple)** and **secondary #FFF59D (yellow)**, with dark plum text and light backgrounds. **Dongle is reserved for the logo. Poppins is used throughout the application**, including headings, navigation, body copy, forms, and numbers. Both fonts are bundled locally, with a system sans serif fallback. Heading sizes, weights, and line spacing are restrained for a calmer business-oriented interface. The home hero uses a community graphic.
 
 The sidebar is replaced by top navigation. Direct desktop links and an expandable three-card menu retain Home, Discover, My events/Event hub, Messages, Community, My group for organizers, and profile access. The interaction is adapted from [React Bits Card Nav](https://www.reactbits.dev/components/card-nav), using CSS transitions with reduced-motion support, a semantic disclosure button, inactive hidden links, Escape-to-close, and mobile layouts. The demo role selector lives above the main content.
 

@@ -1,11 +1,31 @@
 @import 'tailwindcss';
-
 @font-face {
-  font-family: 'Dongle';
+  font-family: 'Poppins';
   font-style: normal;
   font-weight: 400;
   font-display: swap;
-  src: url('/fonts/dongle/dongle-latin-400.woff2') format('woff2');
+  src: url('/fonts/poppins/poppins-latin-400.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Poppins';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/poppins/poppins-latin-500.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Poppins';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/poppins/poppins-latin-600.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Poppins';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/poppins/poppins-latin-700.woff2') format('woff2');
 }
 @font-face {
   font-family: 'Dongle';
@@ -25,8 +45,9 @@
   --tint: #f5eaf8;
   --line: #e7deea;
   --paper: #fbf9fd;
-  --display: 'Dongle', system-ui, sans-serif;
-  --sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --display: var(--sans);
+  --sans: 'Poppins', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --brand: 'Dongle', system-ui, sans-serif;
 }
 * {
   box-sizing: border-box;
@@ -83,20 +104,20 @@ h1,
 h2,
 h3 {
   font-family: var(--display);
-  font-weight: 700;
-  letter-spacing: -0.015em;
+  font-weight: 600;
+  letter-spacing: -0.025em;
 }
 h1 {
-  font-size: 71px;
-  line-height: 0.9;
+  font-size: 42px;
+  line-height: 1.25;
 }
 h2 {
-  font-size: 49px;
-  line-height: 0.9;
+  font-size: 29px;
+  line-height: 1.25;
 }
 h3 {
-  font-size: 37px;
-  line-height: 0.9;
+  font-size: 22px;
+  line-height: 1.25;
 }
 p {
   line-height: 1.65;
@@ -341,7 +362,7 @@ small {
   align-items: flex-start;
 }
 .impact-heading h2 {
-  font-size: 44px;
+  font-size: 26px;
   max-width: 235px;
 }
 .impact-heading .eyebrow {
@@ -371,9 +392,8 @@ small {
 }
 .stats strong {
   display: block;
-  font-size: 25px;
   letter-spacing: 0;
-  font: 700 56px/0.7 var(--display);
+  font: 600 32px/1.15 var(--sans);
 }
 .stats span {
   display: block;
@@ -416,7 +436,7 @@ small {
   margin-bottom: 12px;
 }
 .section-heading h2 {
-  font-size: 54px;
+  font-size: 32px;
 }
 .opportunities {
   margin-top: 39px;
@@ -486,8 +506,9 @@ small {
 }
 .date-badge strong {
   font-family: var(--display);
-  font-size: 38px;
-  line-height: 0.7;
+  font-size: 22px;
+  line-height: 1.1;
+  font-weight: 600;
 }
 .cause-badge {
   display: inline-flex;
@@ -529,8 +550,8 @@ small {
   padding: 20px 19px 0;
 }
 .card-title h3 {
-  font-size: 39px;
-  letter-spacing: -0.015em;
+  font-size: 23px;
+  letter-spacing: -0.025em;
   margin-bottom: 9px;
 }
 .organizer {
@@ -579,7 +600,7 @@ small {
   background: #fff;
 }
 .community-strip h3 {
-  font-size: 37px;
+  font-size: 22px;
   margin-bottom: 6px;
 }
 .community-strip p {
@@ -735,7 +756,7 @@ small {
   margin-bottom: 26px;
 }
 .group-card h2 {
-  font-size: 49px;
+  font-size: 29px;
 }
 .group-card > p:not(.eyebrow) {
   color: var(--muted);
@@ -773,7 +794,7 @@ small {
   border: 0;
 }
 .event-table-row h3 {
-  font-size: 36px;
+  font-size: 21px;
   margin: 0 0 7px;
 }
 .event-table-row p {
@@ -797,7 +818,7 @@ small {
   text-transform: uppercase;
 }
 .table-date strong {
-  font: 700 40px/0.7 var(--display);
+  font: 600 24px/1.1 var(--sans);
 }
 .attendee-count {
   margin-left: auto;
@@ -826,7 +847,7 @@ small {
 }
 .conversation-row h3 {
   margin: 0 0 7px;
-  font-size: 37px;
+  font-size: 22px;
 }
 .conversation-row p {
   font-size: 12px;
@@ -872,7 +893,7 @@ small {
   color: #fff;
 }
 .detail-cover h1 {
-  font-size: 68px;
+  font-size: 40px;
 }
 .detail-cover a {
   display: flex;
@@ -936,7 +957,7 @@ small {
   color: var(--muted);
 }
 .signup-panel h2 {
-  font-size: 49px;
+  font-size: 29px;
 }
 .signup-panel > .muted {
   font-size: 12px;
@@ -981,7 +1002,7 @@ small {
 }
 .thread .section-heading h2 {
   margin: 0;
-  font-size: 48px;
+  font-size: 28px;
 }
 .thread-status {
   display: flex;
@@ -1069,7 +1090,7 @@ small {
   margin-bottom: 32px;
 }
 .form-intro h2 {
-  font-size: 43px;
+  font-size: 25px;
   margin: 0 0 6px;
 }
 .form-intro p {
@@ -1137,7 +1158,7 @@ small {
   font-size: 26px;
 }
 .profile-photo-row h2 {
-  font-size: 46px;
+  font-size: 27px;
   margin: 0 0 12px;
 }
 .profile-photo-row small {
@@ -1176,12 +1197,12 @@ small {
   margin-top: 24px;
 }
 .hours-number {
-  font: 700 110px/0.8 var(--display);
+  font: 600 64px/1.1 var(--sans);
   letter-spacing: -1px;
   color: var(--accent);
 }
 .profile-impact h2 {
-  font-size: 44px;
+  font-size: 26px;
   margin: 10px 0 15px;
 }
 .profile-impact .muted {
@@ -1218,7 +1239,7 @@ small {
 }
 .attendees .section-heading h2 {
   margin: 0;
-  font-size: 48px;
+  font-size: 28px;
 }
 .attendees > .muted {
   font-size: 12px;
@@ -1290,7 +1311,7 @@ small {
   border-radius: 20px;
 }
 .auth-intro h1 {
-  font-size: 82px;
+  font-size: 48px;
   margin-bottom: 24px;
 }
 .auth-intro > p:not(.eyebrow) {
@@ -1311,7 +1332,7 @@ small {
   padding: 32px;
 }
 .auth-panel h2 {
-  font-size: 51px;
+  font-size: 30px;
   margin-bottom: 12px;
 }
 .auth-panel > .muted {
@@ -1353,7 +1374,7 @@ small {
   min-height: 500px;
 }
 .loading-shell h1 {
-  font-size: 60px;
+  font-size: 35px;
 }
 .skeleton {
   margin-top: 30px;
@@ -1378,7 +1399,7 @@ small {
     padding: 24px 18px;
   }
   .impact-heading h2 {
-    font-size: 39px;
+    font-size: 23px;
   }
   .impact-heading .sparkle-box {
     display: none;
@@ -1396,7 +1417,7 @@ small {
     padding: 17px 15px 0;
   }
   .card-title h3 {
-    font-size: 36px;
+    font-size: 21px;
   }
   .event-image-link {
     height: 155px;
@@ -1421,7 +1442,7 @@ small {
     gap: 30px;
   }
   .auth-intro h1 {
-    font-size: 68px;
+    font-size: 40px;
   }
   .community-strip .text-link {
     max-width: 150px;
@@ -1437,7 +1458,7 @@ small {
   }
   .impact-heading h2 {
     max-width: none;
-    font-size: 43px;
+    font-size: 25px;
   }
   .impact-heading .sparkle-box {
     display: flex;
@@ -1501,7 +1522,7 @@ small {
     margin-left: auto;
   }
   .page-heading h1 {
-    font-size: 60px;
+    font-size: 35px;
   }
   .toast {
     left: calc(50% + 107px);
@@ -1523,12 +1544,11 @@ small {
     padding: 23px;
   }
   .stats strong {
-    font-size: 28px;
-    font: 700 56px/0.7 var(--display);
+    font: 600 32px/1.15 var(--sans);
     letter-spacing: 0;
   }
   .section-heading h2 {
-    font-size: 48px;
+    font-size: 28px;
   }
   .section-heading .text-link {
     font-size: 11px;
@@ -1544,7 +1564,7 @@ small {
     padding: 18px 14px 0;
   }
   .card-title h3 {
-    font-size: 36px;
+    font-size: 21px;
   }
   .organizer {
     font-size: 12px;
@@ -1574,7 +1594,7 @@ small {
     gap: 12px;
   }
   .community-strip h3 {
-    font-size: 36px;
+    font-size: 21px;
   }
   .community-strip p {
     font-size: 11px;
@@ -1605,7 +1625,7 @@ small {
     margin-bottom: 25px;
   }
   .page-heading h1 {
-    font-size: 60px;
+    font-size: 35px;
   }
   .page-heading .muted {
     font-size: 13px;
@@ -1621,7 +1641,7 @@ small {
     height: 260px;
   }
   .detail-cover h1 {
-    font-size: 58px;
+    font-size: 34px;
   }
   .detail-cover > div {
     inset: auto 24px 24px;
@@ -1648,7 +1668,7 @@ small {
     gap: 16px;
   }
   .profile-photo-row h2 {
-    font-size: 43px;
+    font-size: 25px;
   }
   .avatar.large {
     width: 70px;
@@ -1679,7 +1699,7 @@ small {
     gap: 12px;
   }
   .conversation-row h3 {
-    font-size: 36px;
+    font-size: 21px;
   }
   .conversation-row .sparkle-box {
     width: 36px;
@@ -1695,7 +1715,7 @@ small {
     font-size: 12px;
   }
   .group-card h2 {
-    font-size: 46px;
+    font-size: 27px;
   }
   .auth-layout {
     margin: 10px auto;
@@ -1710,7 +1730,7 @@ small {
     flex: 1;
   }
   .event-table-row h3 {
-    font-size: 36px;
+    font-size: 21px;
   }
   .event-table-row p {
     font-size: 10px;
@@ -1719,7 +1739,7 @@ small {
     margin-left: 0;
   }
   .profile-impact .hours-number {
-    font-size: 70px;
+    font-size: 52px;
   }
 }
 @media (max-width: 450px) {
@@ -1733,7 +1753,7 @@ small {
     padding: 21px 21px 0;
   }
   .card-title h3 {
-    font-size: 43px;
+    font-size: 25px;
   }
   .organizer {
     font-size: 12px;
@@ -1757,7 +1777,7 @@ small {
     font-size: 10px;
   }
   .section-heading h2 {
-    font-size: 44px;
+    font-size: 26px;
   }
   .section-heading .text-link {
     gap: 4px;
@@ -1780,7 +1800,7 @@ small {
     margin-left: 0;
   }
   .profile-photo-row h2 {
-    font-size: 39px;
+    font-size: 23px;
   }
   .task-editor .form-two {
     grid-template-columns: 1fr;
@@ -1802,7 +1822,7 @@ small {
   }
 }
 
-/* Turnout: Dongle display type, purple + yellow, and an expandable top navigation. */
+/* Turnout: Dongle wordmark, Poppins UI, purple + yellow, and expandable top navigation. */
 .site-header {
   position: sticky;
   top: 16px;
@@ -1830,7 +1850,7 @@ small {
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  font: 700 62px/0.65 var(--display);
+  font: 700 62px/0.65 var(--brand);
   letter-spacing: -1px;
   white-space: nowrap;
 }
@@ -1854,10 +1874,10 @@ small {
   gap: 3px;
 }
 .quick-nav a {
-  font: 400 30px/0.8 var(--display);
+  font: 500 14px/1.4 var(--sans);
   white-space: nowrap;
   border-radius: 14px;
-  padding: 15px 12px 11px;
+  padding: 12px 11px;
   transition: background 150ms;
 }
 .quick-nav a:hover,
@@ -1963,8 +1983,8 @@ small {
   opacity: 0.7;
 }
 .nav-card h2 {
-  font-size: 44px;
-  line-height: 0.85;
+  font-size: 26px;
+  line-height: 1.25;
   margin-bottom: 7px;
 }
 .nav-card p {
@@ -2137,9 +2157,9 @@ small {
   margin-bottom: 26px;
 }
 .hero h1 {
-  font-size: clamp(80px, 7.4vw, 112px);
-  line-height: 0.68;
-  letter-spacing: -0.02em;
+  font-size: clamp(42px, 4.5vw, 62px);
+  line-height: 1.15;
+  letter-spacing: -0.025em;
   margin-bottom: 25px;
 }
 .hero p {
@@ -2197,7 +2217,7 @@ small {
 }
 .people-stamp span {
   text-align: center;
-  font: 700 47px/0.7 var(--display);
+  font: 600 23px/1.15 var(--sans);
 }
 .art-sparkle {
   position: absolute;
@@ -2208,7 +2228,7 @@ small {
   position: absolute;
   bottom: 1px;
   right: 15px;
-  font: 400 31px/0.7 var(--display);
+  font: 400 14px/1.4 var(--sans);
   background: #fff;
   border: 1px solid var(--ink);
   border-radius: 11px;
@@ -2222,8 +2242,8 @@ small {
   padding: 29px 27px;
 }
 .impact-heading h2 {
-  font-size: 48px;
-  line-height: 0.8;
+  font-size: 28px;
+  line-height: 1.25;
   max-width: none;
 }
 .impact-heading .eyebrow {
@@ -2265,21 +2285,21 @@ small {
   margin-bottom: 8px;
 }
 .section-heading h2 {
-  font-size: 55px;
-  line-height: 0.8;
+  font-size: 32px;
+  line-height: 1.25;
 }
 .card-title h3 {
-  font-size: 41px;
-  line-height: 0.85;
-  letter-spacing: 0;
+  font-size: 24px;
+  line-height: 1.25;
+  letter-spacing: -0.025em;
 }
 .community-strip {
   background: var(--tint);
   border: 0;
 }
 .community-strip h3 {
-  font-size: 40px;
-  line-height: 0.85;
+  font-size: 24px;
+  line-height: 1.25;
 }
 .community-strip .sparkle-box {
   background: var(--primary);
@@ -2308,7 +2328,8 @@ small {
     opacity: 0.9;
   }
   .hero h1 {
-    font-size: 94px;
+    font-size: 48px;
+    line-height: 1.15;
   }
   .hero p {
     max-width: 290px;
@@ -2361,7 +2382,7 @@ small {
     padding: 18px;
   }
   .nav-card h2 {
-    font-size: 37px;
+    font-size: 22px;
   }
   .demo-detail {
     display: none;
@@ -2423,8 +2444,8 @@ small {
     border-radius: 14px;
   }
   .nav-card h2 {
-    font-size: 34px;
-    line-height: 0.85;
+    font-size: 20px;
+    line-height: 1.25;
   }
   .nav-card p {
     font-size: 10px;
@@ -2512,9 +2533,10 @@ small {
     margin-bottom: 23px;
   }
   .hero h1 {
-    font-size: clamp(66px, 20.5vw, 88px);
+    font-size: clamp(32px, 9.5vw, 42px);
     max-width: none;
     margin-bottom: 19px;
+    line-height: 1.15;
   }
   .hero p {
     font-size: 13px;
@@ -2548,7 +2570,7 @@ small {
     border-radius: 24px;
   }
   .impact-heading h2 {
-    font-size: 46px;
+    font-size: 27px;
   }
   .stats {
     margin: 25px 0;
@@ -2560,7 +2582,7 @@ small {
     font-size: 11px;
   }
   .section-heading h2 {
-    font-size: 45px;
+    font-size: 26px;
   }
   .section-heading .text-link {
     font-size: 12px;
@@ -2580,10 +2602,10 @@ small {
     height: 205px;
   }
   .card-title h3 {
-    font-size: 43px;
+    font-size: 25px;
   }
   .community-strip h3 {
-    font-size: 36px;
+    font-size: 21px;
   }
   .community-strip p {
     font-size: 12px;
@@ -2594,10 +2616,10 @@ small {
     padding: 20px 3px;
   }
   .page-heading h1 {
-    font-size: 58px;
+    font-size: 34px;
   }
   .detail-cover h1 {
-    font-size: 55px;
+    font-size: 32px;
   }
   input,
   select,
@@ -2626,7 +2648,7 @@ small {
     align-items: flex-start;
   }
   .section-heading h2 {
-    font-size: 39px;
+    font-size: 23px;
   }
   .nav-card {
     padding: 14px;
