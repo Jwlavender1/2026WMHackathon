@@ -2,6 +2,10 @@
 
 [Certain] Status: approved by the user on September 26, 2026. Phase 2 implements the foundation described below, using the supplied Commonly mockup as the visual reference. Implementation and verification notes appear at the end.
 
+**Provider decision update:** the user selected **Auth0 authentication and DigitalOcean managed PostgreSQL + hosting** for the next integration. This supersedes the original Supabase/Vercel provider recommendation. The code has not migrated yet; the schema, policies, and integration contracts below describe the existing Supabase foundation until replaced. See [Auth0 + DigitalOcean handoff](AUTH0_DIGITALOCEAN_HANDOFF.md) for the target design, required account details, and proposed replacements for avatar storage and live threads. Preserve the approved product behavior while changing providers.
+
+Team setup: [Local development](LOCAL_DEVELOPMENT.md) · [Git workflow](TEAM_WORKFLOW.md).
+
 ## 1. Product contract and boundaries
 
 Deliver one complete journey: an organization publishes volunteer opportunities; a volunteer discovers an event, reserves a task, coordinates with attendees, and receives organizer-verified service hours.
@@ -14,7 +18,7 @@ Deliver one complete journey: an organization publishes volunteer opportunities;
 - Community sharing means public event/group pages and a copy-link button. Day-of messaging means a persistent event comment thread with live updates; no direct messages or attachments.
 - Proposed scope boundary: email/password account emails are included; event email subscriptions, digests, reminders, inbound email ingestion, and email-to-thread replies are deferred. “Email event streaming” needs a separate product definition if required for this hackathon.
 
-## 2. Stack
+## 2. Original foundation stack (provider replacement pending)
 
 | Layer             | Recommendation                                                   | Purpose                                                 |
 | ----------------- | ---------------------------------------------------------------- | ------------------------------------------------------- |

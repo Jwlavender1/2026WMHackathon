@@ -2,6 +2,10 @@
 
 **Do good, together.** A community volunteering platform built for the Year of Civic Leadership hackathon. The approved source of truth is [docs/MVP_SPEC.md](docs/MVP_SPEC.md). The UI follows the supplied Commonly mockup.
 
+**Team guides:** [Run locally](docs/LOCAL_DEVELOPMENT.md) · [Push changes and stay updated](docs/TEAM_WORKFLOW.md) · [Auth0 + DigitalOcean handoff](docs/AUTH0_DIGITALOCEAN_HANDOFF.md).
+
+**Provider transition:** Auth0 and DigitalOcean are now the selected target services. The migration is pending; the running foundation still uses the local demo or the Supabase integration described below. New teammates should use the local demo rather than provision another Supabase project.
+
 ## Run immediately
 
 Requires Node.js 22.13+ (verified with Node 24). From this repository:
