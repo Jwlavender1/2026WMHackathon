@@ -6,12 +6,48 @@ import { ArrowUpRight, LogOut, Sparkle, X } from 'lucide-react';
 import { useApp } from './provider';
 import { CardNav } from './card-nav';
 import { initials } from '@/lib/domain';
-import type { DemoState } from '@/lib/types';
+import { authenticationState, type DemoState } from '@/lib/types';
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { data, demo, notice, setNotice, switchUser, logout } = useApp();
   const path = usePathname();
   const org = data.profile?.role === 'organization';
+  const state = authenticationState(data);
+  const notification = notice && (
+    <div role="status" className="toast">
+      <span>{notice}</span>
+      <button className="quiet" aria-label="Dismiss notification" onClick={() => setNotice('')}>
+        <X size={18} />
+      </button>
+    </div>
+  );
+  if (state === 'onboarding' || path === '/onboarding')
+    return (
+      <div className="onboarding-shell">
+        <a className="skip-link" href="#main">
+          Skip to content
+        </a>
+        <header className="onboarding-header">
+          <Link href="/" className="brand" aria-label="Turnout">
+            <span className="brand-icon">
+              <Sparkle size={25} />
+            </span>
+            <span>
+              turnout<span className="brand-period">.</span>
+            </span>
+          </Link>
+          {state !== 'signed_out' && (
+            <button className="text-button" onClick={() => void logout()}>
+              Sign out <LogOut size={17} />
+            </button>
+          )}
+        </header>
+        <main id="main" className="onboarding-content" tabIndex={-1}>
+          {children}
+        </main>
+        {notification}
+      </div>
+    );
   return (
     <>
       <a className="skip-link" href="#main">
@@ -21,7 +57,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <CardNav
           key={`${path}:${data.profile?.role}`}
           organization={org}
-          signedIn={!!data.profile}
+          signedIn={state !== 'signed_out'}
           accountControls={
             <div className="account-tools">
               {data.profile ? (
@@ -85,20 +121,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           {children}
         </main>
         <footer className="footer">
-          <span>Small acts. Real change.</span>
+          <span>Small acts for big change.</span>
           <span>
             Made for our community <Sparkle size={15} />
           </span>
         </footer>
       </div>
-      {notice && (
-        <div role="status" className="toast">
-          <span>{notice}</span>
-          <button className="quiet" aria-label="Dismiss notification" onClick={() => setNotice('')}>
-            <X size={18} />
-          </button>
-        </div>
-      )}
+      {notification}
     </>
   );
 }

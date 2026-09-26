@@ -10,6 +10,8 @@ const form = {
   venue: 'Pantry',
   address: 'Demo address',
   city: 'Williamsburg',
+  location_id: 'demo:williamsburg-va',
+  location_token: '',
   localStart: '2026-10-25T09:00',
   timezone: 'America/New_York',
   duration: 120,

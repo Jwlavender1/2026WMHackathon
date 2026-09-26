@@ -23,6 +23,8 @@ Open **http://localhost:3000**. Run commands from the directory containing `pack
 - Look for the **Demo workspace** banner. Its **Try a role** selector switches between volunteers and the two organization coordinators. Navigation is in the top bar; open its menu button to see the navigation cards on smaller screens.
 - As a volunteer: discover an event, reserve a task, post a message, and edit your profile.
 - As an organizer: use **My group** and **Event hub**, create an event or recurring series, then use **Previous events** to verify sample attendance.
+- To try onboarding: open `/sign-up`, enter a name, and create a demo account. Choose Volunteer or Organization, continue, then select a city suggestion. Organization setup creates its group in the same submission.
+- Demo city lookup is deliberately limited to **Williamsburg, VA**, **Williamsburg, KY**, and **Richmond, VA**, including common misspellings. It needs no API key. Live lookup uses Geoapify; a key alone does not switch demo mode to live mode.
 - Fixtures include two organizations, five future occurrences, and one past event. All listings are fictional. Changes persist in this browser only; they are not shared with teammates.
 - To reset: browser DevTools → Application/Storage → Local Storage → `http://localhost:3000` → remove **only** `commonly-demo-v1`, then reload. Fresh fixtures use the current date.
 
@@ -57,3 +59,5 @@ For browser tests, keep that production server running in demo mode, then run `n
 | New environment values have no effect       | Restart the development server. Ensure shell variables are not overriding `.env.local`.                                                                                  |
 
 For live integration, copy `.env.example` to your own `.env.local` if it does not already exist, and follow the handoff for Auth0, TLS, database users, migration, and seed setup. `.env.local` stays untracked. Use `npm run db:migrate`, `npm run db:grant-runtime`, and `npm run seed` with the intended database credentials. These commands do not provision DigitalOcean resources. For a PostgreSQL server running on localhost, use `PGSSL_MODE=disable` only if it has no TLS; remote connections require verification.
+
+Live onboarding also requires **GEOAPIFY_API_KEY** in `.env.local` and migration **002_onboarding_locations.sql**. The key stays server-side; never prefix it with `NEXT_PUBLIC_`. Restart after changing environment variables. See [onboarding and location behavior](ONBOARDING.md) for fields, validation, and the existing-deployment upgrade steps.

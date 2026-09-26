@@ -2186,6 +2186,314 @@ small {
   }
 }
 
+/* Dedicated account setup and city selection. */
+.onboarding-shell {
+  min-height: 100vh;
+  padding: 34px 24px 70px;
+}
+.onboarding-header {
+  max-width: 920px;
+  margin: 0 auto 44px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+}
+.onboarding-header .brand {
+  font-size: 57px;
+}
+.onboarding-header .text-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+.onboarding-content {
+  max-width: 720px;
+  margin: auto;
+}
+.onboarding-panel {
+  padding: 42px;
+}
+.onboarding-panel h1 {
+  font-size: 30px;
+  line-height: 1.3;
+  letter-spacing: -0.025em;
+  margin-bottom: 12px;
+}
+.onboarding-progress {
+  display: flex;
+  gap: 30px;
+  list-style: none;
+  padding: 0 0 26px;
+  margin: 0 0 27px;
+  border-bottom: 1px solid var(--line);
+}
+.onboarding-progress li {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.onboarding-progress li > span {
+  width: 25px;
+  height: 25px;
+  display: grid;
+  place-items: center;
+  background: var(--tint);
+  border-radius: 50%;
+}
+.onboarding-progress [aria-current='step'] {
+  color: var(--ink);
+  font-weight: 600;
+}
+.onboarding-progress [aria-current='step'] > span {
+  background: var(--primary);
+}
+.onboarding-step {
+  font-size: 11px;
+  color: var(--accent);
+  margin-bottom: 12px;
+}
+.onboarding-description {
+  font-size: 13px;
+  line-height: 1.8;
+  margin-bottom: 28px;
+}
+.onboarding-roles {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.onboarding-roles > label {
+  border: 1px solid var(--line);
+  border-radius: 17px;
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+  position: relative;
+  cursor: pointer;
+}
+.onboarding-roles > label.selected {
+  border-color: var(--accent);
+  background: var(--tint);
+}
+.onboarding-roles input {
+  position: absolute;
+  top: 20px;
+  right: 18px;
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+}
+.onboarding-roles strong {
+  font-size: 16px;
+}
+.onboarding-roles label > span {
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 400;
+  line-height: 1.75;
+}
+.onboarding-actions {
+  margin-top: 28px;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 24px;
+}
+.onboarding-actions .text-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: auto;
+}
+.onboarding-form[hidden] {
+  display: none;
+}
+.onboarding-form input[readonly] {
+  background: var(--paper);
+  color: var(--muted);
+}
+.onboarding-form label > small {
+  display: block;
+  margin-top: 6px;
+  line-height: 1.6;
+  font-weight: 400;
+}
+.onboarding-optional {
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  padding: 18px 0;
+}
+.onboarding-optional summary {
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+}
+.onboarding-optional > div {
+  margin-top: 24px;
+}
+.onboarding-optional p,
+.onboarding-review {
+  font-size: 12px;
+  line-height: 1.7;
+}
+.cause-picker legend {
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 12px;
+}
+.cause-picker > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.cause-picker label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 400;
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  cursor: pointer;
+}
+.cause-picker label:has(:checked) {
+  background: var(--tint);
+  border-color: var(--accent);
+}
+.cause-picker input {
+  width: 14px;
+  height: 14px;
+  accent-color: var(--accent);
+}
+.location-field {
+  position: relative;
+  min-width: 0;
+}
+.location-field > label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 500;
+}
+.location-input-wrap {
+  position: relative;
+}
+.location-input-wrap > svg:first-child {
+  position: absolute;
+  top: 50%;
+  left: 13px;
+  transform: translateY(-50%);
+  color: var(--muted);
+  pointer-events: none;
+}
+.location-input-wrap input {
+  padding-left: 40px;
+  padding-right: 35px;
+}
+.location-check {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--accent);
+  pointer-events: none;
+}
+.location-field > small {
+  display: block;
+  font-size: 11px;
+  line-height: 1.6;
+  margin-top: 7px;
+}
+.location-results {
+  position: absolute;
+  top: 76px;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  padding: 6px;
+  margin: 0;
+  list-style: none;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: white;
+  box-shadow: 0 12px 30px #30213716;
+  max-height: 265px;
+  overflow-y: auto;
+}
+.location-results li {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 13px 10px;
+  border-radius: 7px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.location-results li svg {
+  flex-shrink: 0;
+}
+.location-results li:hover,
+.location-results li.active {
+  background: var(--tint);
+}
+.location-status {
+  display: block;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--accent);
+}
+.location-status:not(:empty) {
+  margin-top: 8px;
+}
+.location-attribution {
+  color: var(--muted);
+}
+.location-attribution a {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+@media (max-width: 600px) {
+  .onboarding-shell {
+    padding: 23px 14px 40px;
+  }
+  .onboarding-header {
+    margin-bottom: 28px;
+  }
+  .onboarding-header .brand {
+    font-size: 49px;
+  }
+  .onboarding-panel {
+    padding: 25px 20px;
+  }
+  .onboarding-panel h1 {
+    font-size: 25px;
+  }
+  .onboarding-progress {
+    gap: 19px;
+  }
+  .onboarding-roles {
+    grid-template-columns: 1fr;
+  }
+  .onboarding-roles > label {
+    padding: 19px;
+    gap: 11px;
+  }
+  .onboarding-actions {
+    gap: 14px;
+  }
+  .onboarding-actions .button {
+    padding: 13px 17px;
+    font-size: 12px;
+  }
+}
+
 /* About page: responsive React Bits-inspired carousel, contained to the page width. */
 .about-carousel {
   width: 100%;

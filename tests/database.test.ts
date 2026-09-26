@@ -1,16 +1,17 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { readFile, readdir } from 'node:fs/promises';
 import { PGlite } from '@electric-sql/pglite';
 import { makeFixtures, fixtureId } from '../src/lib/fixtures';
 import type { Snapshot } from '../src/lib/types';
+import { DEMO_LOCATIONS } from '../src/lib/location';
 
 test('migration and database permission / integrity contracts', async (t) => {
   const db = new PGlite();
   try {
-    await db.exec(
-      await readFile(new URL('../database/migrations/001_foundation.sql', import.meta.url), 'utf8'),
-    );
+    const migrations = new URL('../database/migrations/', import.meta.url);
+    for (const file of (await readdir(migrations)).filter((name) => name.endsWith('.sql')).sort())
+      await db.exec(await readFile(new URL(file, migrations), 'utf8'));
     const f = makeFixtures();
     for (const p of f.profiles) {
       await db.query('insert into public.users(id,auth0_sub,role) values($1,$2,$3)', [
@@ -99,8 +100,18 @@ test('migration and database permission / integrity contracts', async (t) => {
           role: 'organization',
           display_name: 'First Organizer',
           city: 'Williamsburg',
+          location: DEMO_LOCATIONS[0],
+          organization_name: 'First Organization',
+          organization_description: 'An organization for testing onboarding.',
+          public_contact_email: 'contact@example.org',
+          interests: ['Education'],
         });
         assert.equal((await snapshot()).profile?.role, 'organization');
+        assert.equal(
+          (await snapshot()).groups.find((g) => g.owner_id === id)?.name,
+          'First Organization',
+        );
+        assert.equal((await snapshot()).profile?.location?.state_code, 'VA');
         await assert.rejects(
           command('onboard', { role: 'volunteer', display_name: 'Changed', city: 'Williamsburg' }),
           /already set/,
@@ -222,6 +233,7 @@ test('migration and database permission / integrity contracts', async (t) => {
         venue: 'Pantry',
         address: 'Demo',
         city: 'Williamsburg',
+        location: DEMO_LOCATIONS[0],
         timezone: 'America/New_York',
         localStart: `${year}-10-25T09:00`,
         duration: 120,

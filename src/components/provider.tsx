@@ -3,7 +3,7 @@ import { createContext, useCallback, useContext, useEffect, useState, type React
 import { readSnapshot, runCommand, uploadAvatar } from '@/app/actions';
 import { demoCommand } from '@/lib/demo';
 import { makeFixtures } from '@/lib/fixtures';
-import type { DemoState, Profile, Snapshot } from '@/lib/types';
+import type { DemoState, Snapshot } from '@/lib/types';
 
 type Store = {
   data: Snapshot;
@@ -83,7 +83,7 @@ export function AppProvider({
       else {
         const result = await runCommand(kind, input);
         if (!result.ok) throw new Error(result.error);
-        await refresh();
+        if (!(await refresh())) return false;
       }
       setNotice(
         (
@@ -113,6 +113,8 @@ export function AppProvider({
   const switchUser = (id: string) => {
     const next = structuredClone(data as DemoState);
     next.profile = next.profiles.find((p) => p.id === id) ?? null;
+    delete next.onboarding;
+    delete next.pendingUserId;
     save(next);
     setNotice('Demo account changed.');
   };
@@ -123,17 +125,14 @@ export function AppProvider({
       if (demo) {
         const next = structuredClone(data as DemoState);
         if (mode === 'sign-up') {
-          const profile: Profile = {
-            id: crypto.randomUUID(),
-            role: input.role === 'organization' ? 'organization' : 'volunteer',
-            display_name: input.display_name,
-            bio: '',
-            city: 'Williamsburg',
-            avatar_path: null,
-          };
-          next.profiles.push(profile);
-          next.profile = profile;
-        } else next.profile = next.profiles.find((p) => p.role === input.role) ?? next.profiles[0];
+          next.profile = null;
+          next.pendingUserId = crypto.randomUUID();
+          next.onboarding = { display_name: input.display_name };
+        } else {
+          next.profile = next.profiles.find((p) => p.role === input.role) ?? next.profiles[0];
+          delete next.onboarding;
+          delete next.pendingUserId;
+        }
         save(next);
         return true;
       }
@@ -156,6 +155,8 @@ export function AppProvider({
     if (demo) {
       const next = structuredClone(data as DemoState);
       next.profile = null;
+      delete next.onboarding;
+      delete next.pendingUserId;
       save(next);
     } else {
       window.location.assign(new URL('/auth/logout', window.location.origin).href);

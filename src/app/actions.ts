@@ -1,17 +1,21 @@
 'use server';
 import { z } from 'zod';
-import { eventSchema, groupSchema, occurrences, profileSchema } from '@/lib/domain';
+import {
+  eventSchema,
+  groupSchema,
+  occurrences,
+  profileSchema,
+  onboardingSchema,
+} from '@/lib/domain';
+import { verifyLocation } from '@/lib/geocoding';
+import { locationSchema } from '@/lib/location';
 import { withDatabaseUser } from '@/lib/db/server';
 import { validateAvatar } from '@/lib/avatar';
 import type { Result, Snapshot } from '@/lib/types';
 
 const uuid = z.uuid();
 const commandSchemas = {
-  onboard: z.object({
-    role: z.enum(['volunteer', 'organization']),
-    display_name: z.string().trim().min(2).max(80),
-    city: z.string().trim().min(2).max(100),
-  }),
+  onboard: onboardingSchema,
   profile: profileSchema,
   group: groupSchema,
   join: z.object({ event_id: uuid, task_id: uuid }),
@@ -22,12 +26,13 @@ const commandSchemas = {
   hide_comment: z.object({ comment_id: uuid }),
 };
 export async function readSnapshot(): Promise<Snapshot> {
-  return withDatabaseUser(async (client, actor, displayName) => {
+  return withDatabaseUser(async (client, actor, displayName, identity) => {
     const { rows } = await client.query<{ snapshot: Snapshot }>(
       'SELECT public.app_snapshot() AS snapshot',
     );
     const snapshot = rows[0].snapshot;
-    if (actor && !snapshot.profile) snapshot.onboarding = { display_name: displayName };
+    if (actor && !snapshot.profile)
+      snapshot.onboarding = { display_name: displayName, email: identity.email };
     return snapshot;
   });
 }
@@ -57,7 +62,38 @@ export async function runCommand(kind: string, input: unknown): Promise<Result<{
       if (!(kind in commandSchemas)) throw new Error('Unknown operation.');
       payload = commandSchemas[kind as keyof typeof commandSchemas].parse(input);
     }
-    const data = await withDatabaseUser(async (client) => {
+    const data = await withDatabaseUser(async (client, actor, _name, identity) => {
+      if (['onboard', 'profile', 'group', 'create_event', 'update_event'].includes(kind)) {
+        let location;
+        if (payload.location_token) {
+          location = verifyLocation(
+            String(payload.location_token),
+            String(payload.location_id),
+            identity.subject!,
+            process.env.AUTH0_SECRET!,
+          );
+        } else if (kind !== 'onboard') {
+          // An unchanged persisted location needs no fresh provider request. Never trust browser fields.
+          const { rows } = await client.query<{ snapshot: Snapshot }>(
+            'SELECT public.app_snapshot() AS snapshot',
+          );
+          const snapshot = rows[0].snapshot;
+          const group = snapshot.groups.find((g) => g.owner_id === actor);
+          location =
+            kind === 'profile'
+              ? snapshot.profile?.location
+              : kind === 'update_event'
+                ? snapshot.events.find((e) => e.id === payload.event_id && e.group_id === group?.id)
+                    ?.location
+                : group?.location;
+          if (location?.id !== payload.location_id) location = undefined;
+        }
+        if (!location) throw new Error('Select a city from the suggestions.');
+        location = locationSchema.parse(location);
+        payload = { ...payload, location, city: location.city };
+        delete payload.location_token;
+        delete payload.location_id;
+      }
       const result = await client.query<{ data: { id: string } }>(
         'SELECT public.app_command($1,$2::jsonb) AS data',
         [kind, JSON.stringify(payload)],

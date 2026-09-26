@@ -1,6 +1,6 @@
 # Auth0 + DigitalOcean setup
 
-**Status:** provider migration implemented locally; real Auth0 login and DigitalOcean deployment still need verification. No cloud resources have been provisioned. The existing browser demo remains usable. There is no real Supabase data to preserve.
+**Status:** the team has deployed Turnout on DigitalOcean App Platform at [turnout-application-s5j4x.ondigitalocean.app](https://turnout-application-s5j4x.ondigitalocean.app). Its public health check reports `ok` in `live` mode, and both authentication entry points send the production callback URL below. The application owner saved the allowed URLs and confirmed authentication now reaches onboarding. Completing onboarding and verifying logout remain pending. The existing browser demo remains usable. There is no real Supabase data to preserve.
 
 ## Confirmed decisions and owners
 
@@ -13,11 +13,29 @@
 ## Auth0 application owner
 
 1. In this tenant, confirm the supplied app is a **Regular Web Application** and enable the desired login connection (email/password is sufficient).
-2. Add Allowed Callback URL **http://localhost:3000/auth/callback** and Allowed Logout URL **http://localhost:3000**. Add the deployed HTTPS origin with the same callback path and the bare origin for logout once available.
+2. Open **Applications → Applications → the application matching the Client ID above → Settings**. Add the URLs below to the corresponding fields, preserving existing entries, then click **Save Changes**.
 3. Put **AUTH0_CLIENT_SECRET** in ignored `.env.local`. Do not paste it into chat or Git. Keep the generated **AUTH0_SECRET** private; it encrypts session cookies. On another machine, generate a fresh 32-byte hex value into its local file using a cryptographic generator.
 4. Keep **APP_MODE=demo** until the PostgreSQL configuration below is ready. For live use set **APP_MODE=live** and **APP_BASE_URL=http://localhost:3000**, then restart.
 
 The SDK mounts `/auth/login`, `/auth/callback`, and `/auth/logout` through `src/proxy.ts`. First login opens in-app profile/role onboarding; later login preserves the existing role. [Auth0 Next.js SDK reference](https://auth0.github.io/nextjs-auth0/).
+
+| Environment             | Allowed Callback URLs                                                | Allowed Logout URLs                                    |
+| ----------------------- | -------------------------------------------------------------------- | ------------------------------------------------------ |
+| Local development       | `http://localhost:3000/auth/callback`                                | `http://localhost:3000`                                |
+| DigitalOcean production | `https://turnout-application-s5j4x.ondigitalocean.app/auth/callback` | `https://turnout-application-s5j4x.ondigitalocean.app` |
+
+In DigitalOcean's web component, `APP_BASE_URL` must resolve to `https://turnout-application-s5j4x.ondigitalocean.app` (the template uses `${APP_URL}`). Local `.env.local` remains configured for localhost; editing it does not change the deployed app.
+
+### Callback URL mismatch
+
+Auth0 validates the `redirect_uri` sent by `/auth/login` against the selected application's Allowed Callback URLs. Check the scheme, hostname, port, and `/auth/callback` path. Both Sign in and Create account use the same callback; sign-up adds `screen_hint=signup`. This application uses `/auth/callback`, not `/api/auth/callback`.
+
+- If the redirect already contains the production URL above, update and save the Auth0 settings. No application redeployment is needed for that allowlist change.
+- If the redirect contains localhost or a different hostname, correct the web component's `APP_BASE_URL` in DigitalOcean and apply/redeploy that environment change. Do not allow an unintended callback just to suppress the error.
+- Start again from Turnout's Sign in/Create account button after saving; do not reload an old Auth0 error URL. Verify both hosted forms load, then complete a real login, onboarding, and logout in the same browser.
+- The production health check verifies configuration and database reachability, not successful Auth0 authentication. Do not mark the entire flow verified until the callback and session work.
+
+See [Auth0 redirect URL validation](https://auth0.com/docs/authenticate/login/redirect-users-after-login).
 
 ## DigitalOcean owner
 
@@ -34,16 +52,18 @@ npm run db:grant-runtime
 The first creates portable tables, RLS, and authorized functions; the second grants the existing restricted login membership in **commonly_runtime**. The migration operator needs permission to create/grant this non-login role. The grant script rejects an admin/schema-owner login or one with existing user-table write privileges. Do not rewrite a successfully applied migration; add a new SQL file.
 
 5. Connect GitHub repository **Jwlavender1/2026WMHackathon**, branch **main**, source directory **/**. Use the root Dockerfile and the template [../.do/app.yaml](../.do/app.yaml). Choose the paid instance size in the dashboard; the template deliberately omits resource purchase choices and database creation.
-6. Complete the template's empty encrypted runtime values: **AUTH0_CLIENT_SECRET**, **AUTH0_SECRET**, **DATABASE_URL**, and **PGSSL_CA** if needed. The public tenant/client values are prefilled. **APP_BASE_URL** binds to the app URL, **APP_MODE=live**, port **8080**, health path **/api/health**. Keep migration credentials out of the web service. Docker builds need no live credentials; runtime uses them. Database bindings are supported, but make sure a binding uses the restricted application login rather than the admin. [App environment variables](https://docs.digitalocean.com/products/app-platform/how-to/use-environment-variables/).
+6. Complete the template's empty encrypted runtime values: **AUTH0_CLIENT_SECRET**, **AUTH0_SECRET**, **DATABASE_URL**, **GEOAPIFY_API_KEY**, and **PGSSL_CA** if needed. The public tenant/client values are prefilled. **APP_BASE_URL** binds to the app URL, **APP_MODE=live**, port **8080**, health path **/api/health**. Keep migration credentials out of the web service. Docker builds need no live credentials; runtime uses them. Database bindings are supported, but make sure a binding uses the restricted application login rather than the admin. [App environment variables](https://docs.digitalocean.com/products/app-platform/how-to/use-environment-variables/).
 7. Add the actual HTTPS URL to Auth0's allowed URLs, deploy, and run the checks below. Automatic deployment from main is disabled in the template; enable it only after the team agrees on release/migration ownership.
 
-**Health behavior:** live health checks validate Auth0 configuration and reach PostgreSQL to check that the snapshot function exists. This is not an Auth0 callback test. The Dockerfile, app template, and managed database connection still require verification in DigitalOcean; they have not been deployed from this workspace.
+**Onboarding upgrade:** the owner reports Geoapify configured locally and in DigitalOcean, and the local key successfully returns city suggestions. Migration **002_onboarding_locations.sql** is now applied to the team's DigitalOcean database using the `doadmin` owner connection and verified TLS. Both migration checksums match this checkout; user/group/event counts were unchanged and the deployed health endpoint passed afterward. The migration supports the current city-only forms during rollout. Commit/push and deploy the matching application code to expose the new onboarding using [the upgrade instructions](ONBOARDING.md#upgrade-an-existing-deployment).
+
+**Health behavior:** live health checks validate Auth0 configuration and reach PostgreSQL to check that the snapshot and migration-002 command functions exist. Migration 002 is now present, and the currently deployed endpoint passes its check. Health does not verify successful login, Geoapify availability, database permissions for every operation, or persistence across redeploys.
 
 ## Optional connected demo seed
 
 Set **ALLOW_DEMO_SEED=true** and **SEED_DATABASE_HOST** to the exact hostname from the intended demo database URL, then run `npm run seed`. It creates two groups, five future occurrences, one past event, sample reservations/hours/messages. Dates are relative to the first run; reruns preserve existing fixtures. It never creates passwords or Auth0 users.
 
-By default, fixture users have non-login `demo:` identities. To manage a sample group using a real Auth0 account, **before the first seed**, set **SEED_MERCY_AUTH0_SUB** and/or **SEED_LIBRARY_AUTH0_SUB** to the exact verified Auth0 subject (User ID) from the tenant. If that user already logged into Turnout, first finish onboarding as an organization. A rerun will not silently reassign ownership or overwrite a role. Otherwise, a real user can simply create their own group/events after onboarding.
+By default, fixture users have non-login `demo:` identities. To manage a sample group using a real Auth0 account, **before the first seed**, set **SEED_MERCY_AUTH0_SUB** and/or **SEED_LIBRARY_AUTH0_SUB** to the exact verified Auth0 subject (User ID) from the tenant. Use an Auth0 account that has not yet entered Turnout: seeding assigns the organization role and sample group before first login. An account that already completed organization onboarding owns its own group and cannot also own a sample group. A rerun will not reassign ownership, overwrite a role, or replace another group. For normal testing, leave mappings unset and create real groups/events through onboarding.
 
 ## Architecture and validation
 

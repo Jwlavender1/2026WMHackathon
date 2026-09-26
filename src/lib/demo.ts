@@ -1,4 +1,5 @@
-import { eventSchema, groupSchema, occurrences, profileSchema } from './domain';
+import { eventSchema, groupSchema, occurrences, profileSchema, onboardingSchema } from './domain';
+import { demoLocation } from './location';
 import type { DemoState, Event, Signup } from './types';
 export function demoCommand(
   previous: DemoState,
@@ -7,10 +8,49 @@ export function demoCommand(
 ): DemoState {
   const state = structuredClone(previous),
     actor = state.profile;
+  if (kind === 'onboard') {
+    if (actor || !state.onboarding || !state.pendingUserId)
+      throw new Error('Sign in to complete your profile.');
+    const value = onboardingSchema.parse(input);
+    const location = demoLocation(value.location_id);
+    const profile = {
+      id: state.pendingUserId,
+      role: value.role,
+      display_name: value.display_name,
+      city: location.city,
+      location,
+      bio: value.bio,
+      interests: value.interests,
+      skills: value.skills,
+      avatar_path: null,
+    };
+    state.profiles.push(profile);
+    state.profile = profile;
+    if (value.role === 'organization') {
+      state.groups.push({
+        id: crypto.randomUUID(),
+        owner_id: profile.id,
+        name: value.organization_name,
+        slug: `${value.organization_name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${crypto.randomUUID().slice(0, 8)}`,
+        description: value.organization_description,
+        city: location.city,
+        location,
+        website_url: value.website_url || null,
+        public_contact_email: value.public_contact_email || null,
+        causes: value.interests,
+      });
+    }
+    delete state.onboarding;
+    delete state.pendingUserId;
+    return state;
+  }
   if (!actor) throw new Error('Sign in to continue.');
   const group = state.groups.find((g) => g.owner_id === actor.id);
   if (kind === 'profile') {
-    const value = profileSchema.parse(input);
+    const parsed = profileSchema.parse(input);
+    const { location_id, location_token: _, ...fields } = parsed;
+    const location = demoLocation(location_id);
+    const value = { ...fields, location, city: location.city };
     Object.assign(actor, value);
     Object.assign(
       state.profiles.find((p) => p.id === actor.id)!,
@@ -18,7 +58,9 @@ export function demoCommand(
     );
   } else if (kind === 'group') {
     if (actor.role !== 'organization') throw new Error('Organization account required.');
-    const value = groupSchema.parse(input);
+    const { location_id, location_token: _, ...fields } = groupSchema.parse(input);
+    const location = demoLocation(location_id);
+    const value = { ...fields, location, city: location.city };
     if (group) Object.assign(group, value);
     else
       state.groups.push({
@@ -37,7 +79,8 @@ export function demoCommand(
       description: form.description,
       venue: form.venue,
       address: form.address,
-      city: form.city,
+      city: demoLocation(form.location_id).city,
+      location: demoLocation(form.location_id),
       timezone: form.timezone,
       resources_to_bring: form.resources
         .split(',')

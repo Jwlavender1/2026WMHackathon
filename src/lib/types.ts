@@ -1,3 +1,4 @@
+import type { Location } from './location';
 export type Role = 'volunteer' | 'organization';
 export type Profile = {
   id: string;
@@ -6,6 +7,9 @@ export type Profile = {
   bio: string;
   city: string;
   avatar_path: string | null;
+  location?: Location | null;
+  interests?: string[];
+  skills?: string;
 };
 export type Group = {
   id: string;
@@ -15,6 +19,9 @@ export type Group = {
   city: string;
   website_url: string | null;
   owner_id?: string;
+  location?: Location | null;
+  causes?: string[];
+  public_contact_email?: string | null;
 };
 export type Event = {
   id: string;
@@ -31,6 +38,7 @@ export type Event = {
   timezone: string;
   resources_to_bring: string[];
   status: 'published' | 'cancelled';
+  location?: Location | null;
 };
 export type Task = {
   id: string;
@@ -71,7 +79,7 @@ export type Series = {
   duration_minutes: number;
 };
 export type Snapshot = {
-  onboarding?: { display_name: string };
+  onboarding?: { display_name: string; email?: string };
   profile: Profile | null;
   groups: Group[];
   events: Event[];
@@ -79,5 +87,12 @@ export type Snapshot = {
   signups: Signup[];
   comments: Comment[];
 };
-export type DemoState = Snapshot & { profiles: Profile[]; series: Series[] };
+export type DemoState = Snapshot & {
+  profiles: Profile[];
+  series: Series[];
+  pendingUserId?: string;
+};
+export function authenticationState(data: Snapshot): 'signed_out' | 'onboarding' | 'ready' {
+  return data.profile ? 'ready' : data.onboarding ? 'onboarding' : 'signed_out';
+}
 export type Result<T = null> = { ok: true; data: T } | { ok: false; error: string };

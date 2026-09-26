@@ -30,6 +30,9 @@ services:
       - key: AUTH0_CLIENT_SECRET
         scope: RUN_TIME
         type: SECRET
+      - key: GEOAPIFY_API_KEY
+        scope: RUN_TIME
+        type: SECRET
       - key: AUTH0_SECRET
         scope: RUN_TIME
         type: SECRET

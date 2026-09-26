@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test tests/domain.test.ts tests/database.test.ts tests/integration-boundaries.test.ts",
+    "test": "tsx --test tests/domain.test.ts tests/database.test.ts tests/integration-boundaries.test.ts tests/onboarding.test.ts",
     "test:e2e": "playwright test",
     "seed": "tsx --env-file-if-exists=.env.local scripts/seed.ts",
     "format": "prettier --write .",

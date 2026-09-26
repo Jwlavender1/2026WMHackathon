@@ -19,6 +19,7 @@ import { useEffect, useState } from 'react';
 import { useApp } from './provider';
 import { eventPhase, formatDate, initials } from '@/lib/domain';
 import type { Event } from '@/lib/types';
+import { shortLocation } from '@/lib/location';
 
 export const photos = {
   food: '/images/volunteers.jpg',
@@ -114,7 +115,7 @@ export function EventCard({ event }: { event: Event }) {
         <div className="event-meta">
           <span>
             <MapPin size={15} />
-            {event.city}, VA
+            {shortLocation(event)}
           </span>
           <span>
             <Clock3 size={15} />
@@ -209,7 +210,9 @@ export function EventDetail({ id }: { id: string }) {
                 <MapPin />
                 <span>
                   <strong>{event.venue}</strong>
-                  <small>{event.address}</small>
+                  <small>
+                    {event.address} · {shortLocation(event)}
+                  </small>
                 </span>
               </div>
               {event.series_id && (

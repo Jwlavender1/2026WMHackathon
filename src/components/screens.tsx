@@ -14,7 +14,9 @@ import { useState } from 'react';
 import { useApp } from './provider';
 import { AboutCarousel } from './about-carousel';
 import { Empty, EventDetail, EventGrid, PageHeading } from './events';
-import { AuthForm, EventForm, GroupForm, ManageEvent, ProfileForm, OnboardingForm } from './forms';
+import { AuthForm, EventForm, GroupForm, ManageEvent, ProfileForm } from './forms';
+import { OnboardingForm } from './onboarding';
+import { shortLocation } from '@/lib/location';
 import { eventPhase, formatDate } from '@/lib/domain';
 
 export function AppScreen({ route }: { route: string }) {
@@ -79,7 +81,7 @@ function Browse() {
           `${e.title} ${e.description} ${e.city} ${data.groups.find((g) => g.id === e.group_id)?.name}`
             .toLowerCase()
             .includes(q.toLowerCase())) &&
-        (!city || e.city.toLowerCase().includes(city.toLowerCase())) &&
+        (!city || shortLocation(e).toLowerCase().includes(city.toLowerCase())) &&
         (!group || e.group_id === group) &&
         (!task ||
           data.tasks.some(
@@ -91,7 +93,7 @@ function Browse() {
     <>
       <PageHeading
         eyebrow="FIND YOUR WAY TO GIVE BACK"
-        title="A cause for every kind of you."
+        title="A cause for everyone."
         description="A few hours. A meaningful connection. A stronger community."
       />
       <form
@@ -118,7 +120,11 @@ function Browse() {
         </label>
         <label>
           <span>Location</span>
-          <input name="city" placeholder="Any city" defaultValue={city} />
+          <input
+            name="city"
+            placeholder="City or state, e.g. Williamsburg, VA"
+            defaultValue={city}
+          />
         </label>
         <label>
           <span>Organizing group</span>
@@ -365,13 +371,19 @@ function Community({ slug }: { slug?: string }) {
         />
         <p className="location-line">
           <MapPin size={17} />
-          {group.city}
+          {shortLocation(group)}
           {group.website_url && (
             <a className="text-link" href={group.website_url} target="_blank" rel="noreferrer">
               Visit website <ArrowRight size={15} />
             </a>
           )}
+          {group.public_contact_email && (
+            <a className="text-link" href={`mailto:${group.public_contact_email}`}>
+              Contact organization <ArrowRight size={15} />
+            </a>
+          )}
         </p>
+        {!!group.causes?.length && <p className="muted">Focus areas: {group.causes.join(', ')}</p>}
         <h2 className="section-title">Upcoming opportunities</h2>
         <EventGrid
           events={data.events.filter(
@@ -396,7 +408,7 @@ function Community({ slug }: { slug?: string }) {
             <span className="group-logo">
               <Users size={30} />
             </span>
-            <p className="eyebrow">{g.city}</p>
+            <p className="eyebrow">{shortLocation(g)}</p>
             <h2>{g.name}</h2>
             <p>{g.description}</p>
             <Link href={`/groups/${g.slug}`} className="text-link">

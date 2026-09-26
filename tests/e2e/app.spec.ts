@@ -66,16 +66,39 @@ test('new organization onboarding, group setup, occurrence editing, and cancella
   page,
 }) => {
   await page.goto('/sign-up');
-  await page.getByRole('button', { name: 'Organization', exact: true }).click();
   await page.getByLabel('Your name', { exact: true }).fill('Community Coordinator');
   await page.getByRole('button', { name: 'Create account', exact: true }).click();
-  await page.getByRole('link', { name: 'My group', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'How will you use Turnout?' })).toBeVisible();
+  await expect(page.getByRole('navigation', { name: 'Main navigation' })).toHaveCount(0);
+  await page.getByRole('radio', { name: /Organization/ }).check();
+  await page.getByRole('button', { name: 'Continue', exact: true }).click();
   await page.getByLabel('Organization name').fill('Neighborhood Helpers');
   await page
-    .getByRole('textbox', { name: 'About your organization' })
+    .getByRole('textbox', { name: 'Organization description' })
     .fill('Neighbors working together to make Williamsburg a more welcoming place.');
-  await page.getByRole('button', { name: 'Create group', exact: true }).click();
+  await page
+    .getByRole('combobox', { name: 'Organization city / town', exact: true })
+    .fill('Williamsburg');
+  await expect(page.getByRole('option')).toHaveCount(2);
+  await page.evaluate(() => document.fonts.ready);
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.screenshot({ path: '.artifacts/onboarding-organization.png', fullPage: true });
+  await page
+    .getByRole('option', { name: 'Williamsburg, Virginia, United States', exact: true })
+    .click();
+  await page.getByText('Optional profile details', { exact: true }).click();
+  await page.getByLabel('Public contact email', { exact: true }).fill('hello@example.org');
+  await page.getByRole('checkbox', { name: 'Education', exact: true }).check();
+  await page.getByRole('button', { name: 'Create organization', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Event hub', exact: true })).toBeVisible();
+  await page.goto('/my-group');
+  await expect(page.getByLabel('Public contact email (optional)')).toHaveValue('hello@example.org');
+  await page.getByRole('link', { name: 'View public group', exact: true }).click();
+  await expect(
+    page.getByRole('link', { name: 'Contact organization', exact: true }),
+  ).toHaveAttribute('href', 'mailto:hello@example.org');
+  await expect(page.getByText('Focus areas: Education', { exact: true })).toBeVisible();
+  await page.goto('/event-hub');
   await page.getByRole('link', { name: 'Create event', exact: true }).last().click();
   await page.getByLabel('Event title', { exact: true }).fill('Neighborhood Welcome Day');
   await page
@@ -95,6 +118,83 @@ test('new organization onboarding, group setup, occurrence editing, and cancella
   await page.getByRole('button', { name: 'Confirm cancellation' }).click();
   await page.getByRole('link', { name: 'View event', exact: true }).click();
   await expect(page.getByText('This event has been cancelled.', { exact: true })).toBeVisible();
+});
+
+test('volunteer onboarding validates selection, preserves steps, and saves optional details', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/sign-up');
+  await page.getByLabel('Your name', { exact: true }).fill('New Volunteer');
+  await page.getByRole('button', { name: 'Create account', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'How will you use Turnout?' })).toBeVisible();
+  await expect(page.locator('.site-header, .footer')).toHaveCount(0);
+  await expect(page.getByRole('link', { name: 'Sign in', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Sign out', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Continue', exact: true }).click();
+  const city = page.getByRole('combobox', { name: 'City / town', exact: true });
+  await city.fill('Williasmbrg');
+  await expect(page.getByRole('option')).toHaveCount(2);
+  await page.getByRole('button', { name: 'Complete profile', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Set up your volunteer profile' })).toBeVisible();
+  expect(await city.evaluate((node: HTMLInputElement) => node.validity.valid)).toBe(false);
+  await city.press('ArrowUp');
+  await city.press('Enter');
+  await expect(page.locator('input[name="location_id"]')).toHaveValue('demo:williamsburg-ky');
+  await city.fill('Williamsburg');
+  await expect(page.locator('input[name="location_id"]')).toHaveValue('');
+  await expect(page.getByRole('option')).toHaveCount(2);
+  await city.press('ArrowDown');
+  await city.press('Enter');
+  await expect(city).toHaveValue('Williamsburg, Virginia, United States');
+  await page.getByRole('button', { name: 'Back', exact: true }).click();
+  await page.getByRole('button', { name: 'Continue', exact: true }).click();
+  await expect(city).toHaveValue('Williamsburg, Virginia, United States');
+  await page.getByText('Optional profile details', { exact: true }).click();
+  await page
+    .getByLabel('About me', { exact: true })
+    .fill('Interested in supporting local literacy programs.');
+  await page.getByLabel('Skills', { exact: true }).fill('Tutoring, organizing books');
+  await page.getByRole('checkbox', { name: 'Education', exact: true }).check();
+  await page.evaluate(() => document.fonts.ready);
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.screenshot({ path: '.artifacts/onboarding-mobile.png', fullPage: true });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.getByRole('button', { name: 'Complete profile', exact: true }).click();
+  await expect(page).toHaveURL(/\/profile$/);
+  await page.reload();
+  await expect(page.getByLabel('Skills (optional)')).toHaveValue('Tutoring, organizing books');
+  await expect(page.getByRole('checkbox', { name: 'Education', exact: true })).toBeChecked();
+  await expect(page.getByRole('combobox', { name: 'City / town', exact: true })).toHaveValue(
+    'Williamsburg, Virginia, United States',
+  );
+  await page.goto('/onboarding');
+  await expect(page).toHaveURL(/\/browse$/);
+});
+
+test('onboarding keeps lookup failures visible and can sign out before profile completion', async ({
+  page,
+}) => {
+  await page.goto('/sign-up');
+  await page.getByLabel('Your name', { exact: true }).fill('Pending Account');
+  await page.getByRole('button', { name: 'Create account', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'How will you use Turnout?' })).toBeVisible();
+  await page.evaluate(() => document.fonts.ready);
+  await page.screenshot({ path: '.artifacts/onboarding-desktop.png', fullPage: true });
+  await page.getByRole('button', { name: 'Continue', exact: true }).click();
+  await page.route('**/api/locations?*', (route) =>
+    route.fulfill({
+      status: 503,
+      json: { error: 'City lookup is temporarily unavailable. Please try again.' },
+    }),
+  );
+  await page.getByRole('combobox', { name: 'City / town', exact: true }).fill('Williamsburg');
+  await expect(
+    page.getByText('City lookup is temporarily unavailable. Please try again.', { exact: true }),
+  ).toBeVisible();
+  await expect(page.locator('input[name="location_id"]')).toHaveValue('');
+  await page.getByRole('button', { name: 'Sign out', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Sign in to set up your account' })).toBeVisible();
 });
 
 test('organization creates recurring events and verifies attendance', async ({ page }) => {
@@ -157,7 +257,7 @@ test('mobile navigation and forms fit without horizontal overflow', async ({ pag
     'aria-expanded',
     'false',
   );
-  await expect(page.getByRole('heading', { name: 'A cause for every kind of you.' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'A cause for everyone.' })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
     true,
   );

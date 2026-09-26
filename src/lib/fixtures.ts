@@ -1,5 +1,6 @@
 import { DateTime } from 'luxon';
 import type { DemoState, Event, Profile, Signup } from './types';
+import { DEMO_LOCATIONS } from './location';
 export const fixtureId = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 export function makeFixtures(now = new Date()): DemoState {
   const day = DateTime.fromJSDate(now).setZone('America/New_York').startOf('day');
@@ -45,11 +46,19 @@ export function makeFixtures(now = new Date()): DemoState {
       avatar_path: null,
     },
   ];
+  profiles.forEach((profile) =>
+    Object.assign(profile, {
+      location: structuredClone(DEMO_LOCATIONS[0]),
+      interests: [],
+      skills: '',
+    }),
+  );
   const groups = [
     {
       id: fixtureId(10),
       owner_id: fixtureId(4),
       name: 'Williamsburg House of Mercy',
+      location: structuredClone(DEMO_LOCATIONS[0]),
       slug: 'williamsburg-house-of-mercy',
       description:
         'Demo community opportunities supporting food access and neighbors helping neighbors in Williamsburg.',
@@ -60,6 +69,7 @@ export function makeFixtures(now = new Date()): DemoState {
       id: fixtureId(11),
       owner_id: fixtureId(5),
       name: 'Williamsburg Regional Library',
+      location: structuredClone(DEMO_LOCATIONS[0]),
       slug: 'williamsburg-regional-library',
       description:
         'Demo opportunities to connect our community through books, learning, and a shared love of reading.',
@@ -157,6 +167,7 @@ export function makeFixtures(now = new Date()): DemoState {
     venue: s.venue,
     address: 'Demo venue — Williamsburg, VA',
     city: 'Williamsburg',
+    location: structuredClone(DEMO_LOCATIONS[0]),
     starts_at: day.plus({ days: s.offset, hours: s.hour }).toUTC().toISO()!,
     ends_at: day
       .plus({ days: s.offset, hours: s.hour + 2 })

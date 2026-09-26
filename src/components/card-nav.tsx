@@ -34,7 +34,7 @@ export function CardNav({
   const cards = [
     {
       title: 'Find your people.',
-      caption: 'A cause for every kind of you.',
+      caption: 'A cause for everyone.',
       className: 'purple',
       links: [links[0], links[1], links[4]],
     },

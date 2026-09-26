@@ -1,16 +1,16 @@
 # MVP Source of Truth
 
-**Status:** product scope approved September 26, 2026. The application is named **Turnout**. The updated design uses Dongle, purple/yellow, and top navigation as described below; it supersedes the original mockup's serif/green/sidebar styling. The user selected Auth0 and DigitalOcean and confirmed there is no real Supabase data to preserve. The provider migration is implemented in this repository; real Auth0 login and DigitalOcean deployment still require account configuration and verification.
+**Status:** product scope approved September 26, 2026. The application is named **Turnout**. The updated design uses Dongle, purple/yellow, and top navigation as described below; it supersedes the original mockup's serif/green/sidebar styling. The user selected Auth0 and DigitalOcean and confirmed there is no real Supabase data to preserve. The team has deployed on DigitalOcean App Platform and the live health check passes. After updating Auth0's allowed URLs, the application owner confirmed authentication reaches onboarding; onboarding completion and logout remain to be verified. See the handoff for the exact deployed URLs.
 
-Team guides: [Local development](LOCAL_DEVELOPMENT.md) · [Git workflow](TEAM_WORKFLOW.md) · [Auth0/DigitalOcean setup](AUTH0_DIGITALOCEAN_HANDOFF.md).
+Team guides: [Local development](LOCAL_DEVELOPMENT.md) · [Git workflow](TEAM_WORKFLOW.md) · [Auth0/DigitalOcean setup](AUTH0_DIGITALOCEAN_HANDOFF.md) / [Onboarding and location rollout](ONBOARDING.md).
 
 ## 1. Product contract
 
 An organization publishes opportunities; a volunteer discovers an event, reserves a task, coordinates with participants, and receives organizer-verified service hours.
 
 - Two fixed account roles: volunteer and organization. Auth0 handles login; first-login onboarding sets the application role once. Organization means the group's owner/operator, not an Auth0 Organizations subscription feature.
-- Volunteers manage display name, photo, biography, city, and see derived service hours.
-- Each organization account owns one group and manages its details, events, tasks, attendees, and attendance. Multiple staff accounts and group membership are deferred.
+- Volunteers manage display name, photo, biography, selected city/state/country, skills, cause interests, and see derived service hours.
+- Organization onboarding atomically creates the profile and its one group, collecting contact name, organization name/description, and selected location; website, public contact email, and cause categories are optional. Each organization account manages its group details, events, tasks, attendees, and attendance. Multiple staff accounts and group membership are deferred.
 - Visitors can browse public event/group pages and share URLs. Reservations and threads require authentication and an appropriate account.
 - One active task reservation per volunteer per occurrence. No waitlists, payments, donations, or resource inventory.
 - Messages lists authorized event conversations; Community lists groups. Threads are persistent text comments, with five-second polling while visible. No direct messages or attachments.
@@ -24,6 +24,7 @@ An organization publishes opportunities; a volunteer discovers an event, reserve
 | UI             | Tailwind CSS, shared CSS and accessible native controls, Lucide icons           |
 | Authentication | Auth0 Next.js SDK, Universal Login, server-validated cookie sessions            |
 | Database       | Portable PostgreSQL, node-postgres pool; target DigitalOcean Managed PostgreSQL |
+| City lookup    | Geoapify city autocomplete through an authenticated server route; US-only MVP   |
 | Images         | Private PostgreSQL avatar bytes, capped at 2 MB; authenticated image route      |
 | Conversations  | Authorized Server Action reads, polling every five seconds while visible        |
 | Hosting        | Node 24 standalone Docker image; DigitalOcean App Platform template             |
@@ -38,20 +39,24 @@ Supabase dependencies and the old provider-specific migration have been removed.
 
 UUID primary keys, foreign keys, and creation timestamps on application tables; update timestamps on mutable records. All event instants are UTC timestamptz, retaining an IANA time zone (default America/New_York).
 
-| Table             | Fields / relationships                                                                                                                                                      |
-| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| users             | id UUID, unique auth0_sub text, role volunteer/organization (null only before onboarding); no passwords                                                                     |
-| profiles          | user_id PK/FK, display_name, bio, city, avatar_path                                                                                                                         |
-| profile_images    | user_id PK/FK, mime_type, content bytea, updated_at; one private image per user, 1–2,097,152 bytes                                                                          |
-| groups            | id, unique owner_id, name, unique slug, description, city, website_url                                                                                                      |
-| event_series      | id, group_id, weekly frequency, interval_weeks 1/2, occurrence_count 2–12, timezone, first_local_start, duration_minutes                                                    |
-| events            | id, group_id, optional series_id/occurrence_index, title, description, venue, address, city, starts_at, ends_at, timezone, resources_to_bring[], published/cancelled status |
-| event_tasks       | id, event_id, name, description, capacity 1–500; unique event/task name and composite id/event_id                                                                           |
-| signups           | id, event_id, task_id, volunteer_id, active/withdrawn status, optional verified_minutes/verified_by/verified_at                                                             |
-| event_comments    | id, event_id, author_id, body, hidden_at; trimmed messages 1–2,000 characters                                                                                               |
-| schema_migrations | migration filename, checksum, applied_at; migration-operator only                                                                                                           |
+| Table             | Fields / relationships                                                                                                                                                                      |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| users             | id UUID, unique auth0_sub text, role volunteer/organization (null only before onboarding); no passwords                                                                                     |
+| profiles          | user_id PK/FK, display_name, bio, city, location JSONB, interests[], skills, avatar_path                                                                                                    |
+| profile_images    | user_id PK/FK, mime_type, content bytea, updated_at; one private image per user, 1–2,097,152 bytes                                                                                          |
+| groups            | id, unique owner_id, name, unique slug, description, city, location JSONB, website_url, public_contact_email, causes[]                                                                      |
+| event_series      | id, group_id, weekly frequency, interval_weeks 1/2, occurrence_count 2–12, timezone, first_local_start, duration_minutes                                                                    |
+| events            | id, group_id, optional series_id/occurrence_index, title, description, venue, address, city, location JSONB, starts_at, ends_at, timezone, resources_to_bring[], published/cancelled status |
+| event_tasks       | id, event_id, name, description, capacity 1–500; unique event/task name and composite id/event_id                                                                                           |
+| signups           | id, event_id, task_id, volunteer_id, active/withdrawn status, optional verified_minutes/verified_by/verified_at                                                                             |
+| event_comments    | id, event_id, author_id, body, hidden_at; trimmed messages 1–2,000 characters                                                                                                               |
+| schema_migrations | migration filename, checksum, applied_at; migration-operator only                                                                                                                           |
 
 Relationships: Auth0 subject → internal user → profile; owner → group → series/occurrences → tasks → signups; volunteer → signups; event → comments ← author. Unique signup per event/volunteer; composite task/event FK prevents cross-event reservations. Series/group FK keeps occurrences with the correct group. Verification fields are all absent or all present.
+
+Structured location stores provider/place ID, city, state code, country code, and approximate city latitude/longitude. The new application requires a selection validated by the server. Migration 002 also supports the old deployed server's city-only requests during rollout; if an old form changes a city, its stale structured location is cleared. Existing city strings remain readable with a null location until confirmed on edit; no state is inferred.
+
+Migration 002 has been applied to the team's DigitalOcean database, with matching migration checksums, unchanged existing record counts, and a passing live health check. The updated onboarding interface still requires publishing and deploying this application version.
 
 Indexes cover event status/start/id, group/start, normalized city, signup task/status and volunteer, and event comment timestamp/id. Filtering remains a small-data substring match rather than geospatial search.
 
@@ -63,11 +68,11 @@ Indexes cover event status/start/id, group/start, normalized city, signup task/s
 - **Lifecycle:** upcoming means published and not started; ongoing means started but not ended; previous means ended. Cancelled has its own dashboard tab. Cancellation keeps history but closes reservations/messages and disallows attendance verification. Completed event times/tasks are immutable.
 - **Editor:** before the start, edit title, description, venue/address/city, resources, time/duration, and capacities. Task identities/names remain stable after creation. Capacity cannot fall below active reservations. Automated change notifications are deferred.
 - **Threads:** only the event owner and active registered volunteers may read, including after completion/cancellation. Posting closes at cancellation or 24 hours after the end. Authors can hide their own messages; owners can hide messages in their events. Hidden body content is removed from subsequent reads.
-- **Public data:** group/event/task details and aggregate availability only. No public email, subject identifiers, unrelated profiles, attendee identities, or group owner IDs. Attendee reads are scoped to self/owning organization.
+- **Public data:** group/event/task details and aggregate availability only. Only the separately entered organization public contact email is public. Auth0 account email, subject identifiers, unrelated profiles, attendee identities, and other group owner IDs stay private. Attendee reads are scoped to self/owning organization.
 - **Authorization:** no database credentials in the browser. The server verifies Auth0 sessions, resolves the subject to an internal UUID, and sets that UUID with transaction-local set_config on the same pooled connection used for the request. Every transaction clears context first and commits or rolls back before release. A separate commonly_runtime role has read policies and authorized function execution, with no direct table mutation rights. The application login must not own the schema or bypass RLS.
 - **Images:** server validates byte signatures/MIME and size. SQL limits storage and restricts reads to the owner. GET /api/avatar uses authenticated private, no-store responses; the client cannot request another user's avatar by supplying an ID.
 
-Database enforcement is in [001_foundation.sql](../database/migrations/001_foundation.sql); server identity/transaction handling is in src/lib/db. Migration credentials are used only by admin scripts, never by the application.
+Database enforcement is in [001_foundation.sql](../database/migrations/001_foundation.sql) and additive [002_onboarding_locations.sql](../database/migrations/002_onboarding_locations.sql); server identity/transaction handling is in src/lib/db. Migration credentials are used only by admin scripts, never by the application.
 
 ## 5. Server interfaces
 
@@ -76,16 +81,17 @@ Database enforcement is in [001_foundation.sql](../database/migrations/001_found
 | /auth/login, /auth/callback, /auth/logout | Auth0 SDK routes through proxy.ts; application does not collect live passwords                                                           |
 | readSnapshot()                            | Authorized server read of public records and the user's scoped profile/reservations/comments; indicates first-login onboarding if needed |
 | runCommand(kind, input)                   | Validates each command's Zod schema and invokes app_command in an authenticated user transaction                                         |
-| onboard                                   | One-time role, display name, and city selection                                                                                          |
+| onboard                                   | One-time role, name and verified location plus role-specific fields; organization group created atomically                               |
 | profile / group                           | Edit own profile; create/update own organization group                                                                                   |
 | create_event / update_event / cancel      | Publish tasks and optional series, edit one future occurrence, cancel future/ongoing occurrence                                          |
 | join / withdraw                           | Transactional volunteer task reservations                                                                                                |
 | verify                                    | Owner-only attendance minutes on completed events                                                                                        |
 | comment / hide_comment                    | Participant posting and scoped moderation                                                                                                |
 | uploadAvatar() / GET /api/avatar          | Validate/store and privately serve the current user's profile picture                                                                    |
+| GET /api/locations?q=...                  | Authenticated live US city suggestions, signed selection proofs; fixed examples in demo mode                                             |
 | GET /api/health                           | Mode/configuration check; live mode also checks PostgreSQL reachability and migration function presence                                  |
 
-Public pages load through Server Components into a shared client snapshot. For hackathon-sized data, discovery combines keyword/city/group/task with AND, orders by start time/id, and displays 20 records per page. Filters are in URL parameters. Threads show 50 messages at a time. Replace snapshot reads with database filtering/cursors when data volume grows.
+Public pages load through Server Components into a shared client snapshot. For hackathon-sized data, discovery combines keyword/city-or-state-code/group/task with AND, orders by start time/id, and displays 20 records per page. Filters are in URL parameters. Threads show 50 messages at a time. Replace snapshot reads with database filtering/cursors when data volume grows.
 
 Mutations return success data or a user-visible error. Database-shaped TypeScript models are hand-maintained alongside migrations. An independent REST service, ORM, queue, and WebSocket server are unnecessary for this scope.
 
@@ -94,12 +100,12 @@ Mutations return success data or a user-visible error. Database-shaped TypeScrip
     RootLayout → AppProvider → AppShell (CardNav top navigation and account controls)
     /                         About Turnout: responsive informational carousel + community link
     /sign-in, /sign-up         Auth0 entry point, or local demo account flow
-    /onboarding               One-time role/profile form after Auth0 login
+    /onboarding               Dedicated two-step role/details flow; no CardNav or footer
     /browse                   SearchFilters + paginated EventGrid
     /groups/[slug]            Group details + upcoming events
     /events                   My registered events by lifecycle
     /events/[id]              Details/resources + TaskSignupPanel + EventThread
-    /profile                  Avatar + bio/city/name + hours/history
+    /profile                  Avatar + bio/location/name + skills/interests + hours/history
     /my-group                 Organization group editor
     /event-hub                Organization event tabs and attendance links
     /event-hub/new             EventForm + TaskEditor + recurrence
@@ -110,6 +116,8 @@ Mutations return success data or a user-visible error. Database-shaped TypeScrip
 Turnout uses **primary #CE93D8 (purple)** and **secondary #FFF59D (yellow)**, with dark plum text and light backgrounds. **Dongle is reserved for the logo. Poppins is used throughout the application**, including headings, navigation, body copy, forms, and numbers. Both fonts are bundled locally, with a system sans serif fallback. Heading sizes, weights, and line spacing are restrained for a calmer business-oriented interface.
 
 The sidebar is replaced by top navigation. Direct desktop links and an expandable three-card menu provide About, Discover, My events/Event hub, Messages, Community, My group for organizers, and profile access. The interaction is adapted from [React Bits Card Nav](https://www.reactbits.dev/components/card-nav), using CSS transitions with reduced-motion support, a semantic disclosure button, inactive hidden links, Escape-to-close, and mobile layouts. The demo role selector lives above the main content.
+
+Authentication has three UI states: signed out, authenticated but awaiting onboarding, and ready. Onboarding shows only the logo, progress, Back, and Sign out, and completed profiles visiting /onboarding are redirected to Discover. Required role-specific fields and optional details are defined in [Onboarding](ONBOARDING.md); profile photos remain a later Profile action.
 
 The top bar contains navigation, account controls, and the card-menu toggle, without a separate Get involved/Create event CTA or global search bar. Discovery filters remain on Discover; event creation remains accessible from Event hub and the expanded menu.
 
@@ -143,8 +151,8 @@ The connected seed is atomic and uses stable IDs; reruns preserve existing data.
 - Verify last-slot behavior, idempotent joins, withdrawal, cancellation, bounded attendance and revisions.
 - Exercise finite recurrence across daylight saving changes, combined discovery filters, persistent messages, image validation, and mobile layouts.
 - Test transaction-local identity reset after commit/rollback and TLS validation.
-- Run typecheck, lint, unit/database tests, production build, and browser demo flows.
+- Run typecheck, lint, unit/database tests, production build, and browser demo flows, including both onboarding roles, typo recovery, mandatory selection, invalid/expired selection proof rejection, provider outages, and upgrade preservation.
 - PGlite executes the actual portable migration without Supabase mocks. It serializes requests; independent-connection races must also be verified on PostgreSQL before the live demo.
-- Auth0 login/callback/logout against the supplied tenant, Docker execution, actual DigitalOcean deployment, cross-browser polling, and persistence across redeploy remain live-environment checks. Local tests cannot claim these passed.
+- The DigitalOcean deployment's public health check and outgoing Auth0 login/sign-up redirects have been checked. The application owner confirmed authentication reaches onboarding after saving the allowed URLs. Onboarding completion, logout, cross-browser polling, and persistence across redeploy remain live-environment checks. Local tests cannot claim these passed.
 
 Deployment artifacts are [Dockerfile](../Dockerfile) and [.do/app.yaml](../.do/app.yaml). Paid resources are selected/provisioned by the teammate responsible for DigitalOcean. The secrets/configuration and completion checklist are in the handoff.

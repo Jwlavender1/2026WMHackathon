@@ -1,16 +1,53 @@
 import { DateTime } from 'luxon';
 import { z } from 'zod';
 import type { Event, Signup } from './types';
+import { interestsSchema, locationSelection } from './location';
+
+const optionalWebsite = z
+  .union([z.literal(''), z.url().refine((v) => /^https?:\/\//.test(v), 'Use an http or https URL')])
+  .default('');
+const optionalEmail = z.union([z.literal(''), z.email().max(254)]).default('');
+export const onboardingSchema = z
+  .object({
+    role: z.enum(['volunteer', 'organization']),
+    display_name: z.string().trim().min(2).max(80),
+    ...locationSelection,
+    bio: z.string().trim().max(1000).default(''),
+    skills: z.string().trim().max(300).default(''),
+    interests: interestsSchema,
+    organization_name: z.string().trim().max(120).default(''),
+    organization_description: z.string().trim().max(2000).default(''),
+    website_url: optionalWebsite,
+    public_contact_email: optionalEmail,
+  })
+  .superRefine((value, ctx) => {
+    if (value.role === 'organization' && value.organization_name.length < 2)
+      ctx.addIssue({
+        code: 'custom',
+        path: ['organization_name'],
+        message: 'Enter an organization name.',
+      });
+    if (value.role === 'organization' && value.organization_description.length < 10)
+      ctx.addIssue({
+        code: 'custom',
+        path: ['organization_description'],
+        message: 'Describe your organization in at least 10 characters.',
+      });
+  });
 
 export const profileSchema = z.object({
   display_name: z.string().trim().min(2).max(80),
   bio: z.string().trim().max(1000),
-  city: z.string().trim().min(2).max(100),
+  ...locationSelection,
+  interests: interestsSchema,
+  skills: z.string().trim().max(300).default(''),
 });
 export const groupSchema = z.object({
   name: z.string().trim().min(2).max(120),
   description: z.string().trim().min(10).max(2000),
-  city: z.string().trim().min(2).max(100),
+  ...locationSelection,
+  causes: interestsSchema,
+  public_contact_email: optionalEmail,
   website_url: z.union([
     z.literal(''),
     z.url().refine((v) => /^https?:\/\//.test(v), 'Use an http or https URL'),
@@ -22,7 +59,7 @@ export const eventSchema = z
     description: z.string().trim().min(10).max(4000),
     venue: z.string().trim().min(2).max(150),
     address: z.string().trim().min(2).max(200),
-    city: z.string().trim().min(2).max(100),
+    ...locationSelection,
     localStart: z.string().min(16),
     timezone: z.string().default('America/New_York'),
     duration: z.coerce.number().int().min(15).max(720),

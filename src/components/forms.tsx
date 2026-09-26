@@ -18,6 +18,8 @@ import {
 import { useApp } from './provider';
 import { Empty, PageHeading } from './events';
 import { AuthRequired } from './screens';
+import { LocationPicker } from './location-picker';
+import { CauseFields } from './onboarding';
 import { eventPhase, formatDate, hoursServed, initials } from '@/lib/domain';
 import type { Event, Signup } from '@/lib/types';
 
@@ -66,7 +68,11 @@ export function ProfileForm() {
                 className="form-stack"
                 onSubmit={async (e) => {
                   e.preventDefault();
-                  await act('profile', Object.fromEntries(new FormData(e.currentTarget)));
+                  const form = new FormData(e.currentTarget);
+                  await act('profile', {
+                    ...Object.fromEntries(form),
+                    interests: form.getAll('interests'),
+                  });
                 }}
               >
                 <Field
@@ -77,7 +83,7 @@ export function ProfileForm() {
                   minLength={2}
                   maxLength={80}
                 />
-                <Field label="City" name="city" defaultValue={p.city} required />
+                <LocationPicker initial={p.location} legacyCity={p.city} />
                 <label>
                   About me
                   <textarea
@@ -88,6 +94,13 @@ export function ProfileForm() {
                     placeholder="What brings you to your community?"
                   />
                 </label>
+                <Field
+                  label="Skills (optional)"
+                  name="skills"
+                  defaultValue={p.skills ?? ''}
+                  maxLength={300}
+                />
+                <CauseFields initial={p.interests} />
                 <div className="form-actions">
                   <span className="status-tag">
                     {p.role === 'organization' ? 'Organization account' : 'Volunteer account'}
@@ -155,7 +168,8 @@ export function GroupForm() {
           className="form-stack"
           onSubmit={async (e) => {
             e.preventDefault();
-            if (await act('group', Object.fromEntries(new FormData(e.currentTarget))))
+            const form = new FormData(e.currentTarget);
+            if (await act('group', { ...Object.fromEntries(form), causes: form.getAll('causes') }))
               router.push('/event-hub');
           }}
         >
@@ -177,7 +191,19 @@ export function GroupForm() {
               rows={5}
             />
           </label>
-          <Field label="City" name="city" defaultValue={group?.city ?? 'Williamsburg'} required />
+          <LocationPicker
+            initial={group?.location}
+            legacyCity={group?.city}
+            label="Organization city / town"
+          />
+          <Field
+            label="Public contact email (optional)"
+            name="public_contact_email"
+            type="email"
+            defaultValue={group?.public_contact_email ?? ''}
+            maxLength={254}
+          />
+          <CauseFields name="causes" initial={group?.causes} legend="Cause categories (optional)" />
           <Field
             label="Website (optional)"
             name="website_url"
@@ -287,11 +313,10 @@ export function EventForm({ event }: { event?: Event }) {
               </label>
               <div className="form-two">
                 <Field label="Venue" name="venue" defaultValue={event?.venue} required />
-                <Field
-                  label="City"
-                  name="city"
-                  defaultValue={event?.city ?? 'Williamsburg'}
-                  required
+                <LocationPicker
+                  initial={event ? event.location : group.location}
+                  legacyCity={event?.city}
+                  label="Event city / town"
                 />
               </div>
               <Field
@@ -689,10 +714,10 @@ export function AuthForm({ mode }: { mode: 'sign-in' | 'sign-up' }) {
                 display_name: fields.display_name || 'Community member',
               })
             )
-              router.push('/');
+              router.push(signup ? '/onboarding' : '/');
           }}
         >
-          {(signup || demo) && (
+          {!signup && demo && (
             <fieldset className="role-picker">
               <legend>I’m here as a</legend>
               <button
@@ -757,71 +782,6 @@ export function AuthForm({ mode }: { mode: 'sign-in' | 'sign-up' }) {
         </p>
       </section>
     </div>
-  );
-}
-export function OnboardingForm() {
-  const { data, act, busy } = useApp();
-  const router = useRouter();
-  const [role, setRole] = useState('volunteer');
-  if (!data.onboarding)
-    return (
-      <Empty title="You’re all set">
-        <Link href="/" className="button">
-          Back to home
-        </Link>
-      </Empty>
-    );
-  return (
-    <section className="panel form-panel">
-      <PageHeading
-        eyebrow="WELCOME TO TURNOUT"
-        title="Find your place"
-        description="Choose how you want to help. This account role is set once."
-      />
-      <form
-        className="form-stack"
-        onSubmit={async (e) => {
-          e.preventDefault();
-          if (await act('onboard', { ...Object.fromEntries(new FormData(e.currentTarget)), role }))
-            router.push(role === 'organization' ? '/my-group' : '/profile');
-        }}
-      >
-        <fieldset className="role-picker">
-          <legend>I’m here as a</legend>
-          {(['volunteer', 'organization'] as const).map((value) => (
-            <button
-              key={value}
-              type="button"
-              aria-pressed={role === value}
-              className={role === value ? 'selected' : ''}
-              onClick={() => setRole(value)}
-            >
-              {value === 'volunteer' ? <Sparkle size={18} /> : <Users size={18} />}{' '}
-              {value === 'volunteer' ? 'Volunteer' : 'Organization'}
-            </button>
-          ))}
-        </fieldset>
-        <Field
-          label="Display name"
-          name="display_name"
-          defaultValue={data.onboarding.display_name}
-          minLength={2}
-          maxLength={80}
-          required
-        />
-        <Field
-          label="City"
-          name="city"
-          defaultValue="Williamsburg"
-          minLength={2}
-          maxLength={100}
-          required
-        />
-        <button className="button" disabled={busy}>
-          {busy ? 'Saving…' : 'Complete profile'} <ArrowRight size={17} />
-        </button>
-      </form>
-    </section>
   );
 }
 function Field({

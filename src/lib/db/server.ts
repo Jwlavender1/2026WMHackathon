@@ -17,12 +17,17 @@ function pool() {
 }
 export async function databaseReady() {
   const result = await pool().query<{ ready: boolean }>(
-    "SELECT to_regprocedure('public.app_snapshot()') IS NOT NULL AS ready",
+    "SELECT to_regprocedure('public.app_snapshot()') IS NOT NULL AND to_regprocedure('private.app_command_v1(text,jsonb)') IS NOT NULL AS ready",
   );
   if (!result.rows[0].ready) throw new Error('Database migrations are required.');
 }
 export async function withDatabaseUser<T>(
-  operation: (client: PoolClient, actor: string | null, displayName: string) => Promise<T>,
+  operation: (
+    client: PoolClient,
+    actor: string | null,
+    displayName: string,
+    identity: { subject: string | null; email?: string },
+  ) => Promise<T>,
   required = false,
 ): Promise<T> {
   if (appMode() !== 'live') throw new Error('This operation requires live mode.');
@@ -39,6 +44,10 @@ export async function withDatabaseUser<T>(
       );
       return result.rows[0].id;
     },
-    (client, actor) => operation(client, actor, displayName),
+    (client, actor) =>
+      operation(client, actor, displayName, {
+        subject: session?.user.sub ?? null,
+        email: typeof session?.user.email === 'string' ? session.user.email : undefined,
+      }),
   );
 }

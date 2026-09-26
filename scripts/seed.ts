@@ -50,6 +50,16 @@ async function main() {
           'A mapped seed owner must already have the organization role. Complete onboarding first.',
         );
       const id = user?.id ?? p.id;
+      if (sub && user) {
+        const owned = await client.query<{ id: string }>(
+          'SELECT id FROM public.groups WHERE owner_id=$1',
+          [id],
+        );
+        if (owned.rows.some((group) => group.id !== fixtures.groups[i - 3].id))
+          throw new Error(
+            'A mapped seed owner already manages a different group. Use an unused Auth0 account or leave the sample group unmapped; seeding will not replace their group.',
+          );
+      }
       ids.set(p.id, id);
       if (!user) {
         // Do not silently change an existing fixture identity when mapping configuration changes.
@@ -61,7 +71,16 @@ async function main() {
         await insert('users', [{ id, auth0_sub: subject, role: p.role }]);
       }
       await insert('profiles', [
-        { user_id: id, display_name: p.display_name, bio: p.bio, city: p.city, avatar_path: null },
+        {
+          user_id: id,
+          display_name: p.display_name,
+          bio: p.bio,
+          city: p.city,
+          location: p.location,
+          interests: p.interests,
+          skills: p.skills,
+          avatar_path: null,
+        },
       ]);
     }
     const map = (id: string | null | undefined) => (id ? (ids.get(id) ?? id) : null);
