@@ -3,10 +3,6 @@ import Link from 'next/link';
 import {
   ArrowRight,
   ArrowUpRight,
-  BookOpen,
-  CalendarDays,
-  Check,
-  Clock3,
   MapPin,
   MessageSquare,
   Users,
@@ -55,82 +51,6 @@ export function PublicFooter() {
   );
 }
 
-function WorkspacePreview() {
-  return (
-    <figure
-      className={styles.preview}
-      aria-label="Illustrative Turnout workspace, not live event listings"
-    >
-      <div className={styles.previewTop}>
-        <span>
-          <span className={styles.previewDot} /> A look inside Turnout
-        </span>
-        <span>EXAMPLE</span>
-      </div>
-      <div className={styles.previewWindow}>
-        <div className={styles.windowHeading}>
-          <strong>Discover</strong>
-          <span>
-            <MapPin size={13} /> Your city
-          </span>
-        </div>
-        <p className={styles.previewDescription}>Upcoming service opportunities</p>
-        <div className={styles.sampleListing}>
-          <div className={styles.sampleEvent}>
-            <span className={styles.eventIcon}>
-              <CalendarDays size={24} />
-            </span>
-            <div>
-              <h3>Neighborhood cleanup</h3>
-              <p>Community volunteers</p>
-              <p>Saturday · 9:00–11:00 AM</p>
-            </div>
-            <ArrowUpRight size={18} aria-hidden="true" />
-          </div>
-          <div className={styles.sampleTask}>
-            <span>
-              <Users size={14} /> Litter collection
-            </span>
-            <span>8 spots open</span>
-          </div>
-        </div>
-        <div className={styles.sampleListing}>
-          <div className={styles.sampleEvent}>
-            <span className={styles.eventIcon}>
-              <BookOpen size={24} />
-            </span>
-            <div>
-              <h3>Book donation sorting</h3>
-              <p>Community library</p>
-              <p>Sunday · 10:00 AM–12:00 PM</p>
-            </div>
-            <ArrowUpRight size={18} aria-hidden="true" />
-          </div>
-          <div className={styles.sampleTask}>
-            <span>
-              <Users size={14} /> Sort and shelve books
-            </span>
-            <span>6 spots open</span>
-          </div>
-        </div>
-      </div>
-      <div className={styles.hoursCard}>
-        <span>
-          <Clock3 size={19} /> Hours served
-        </span>
-        <div>
-          <strong>2.0</strong>
-          <span>hours served</span>
-          <span className={styles.verified}>
-            <Check size={13} /> Verified
-          </span>
-        </div>
-      </div>
-      <figcaption>Illustrative preview with fictional events and service hours.</figcaption>
-    </figure>
-  );
-}
-
 export function LandingPage() {
   return (
     <div className={styles.page}>
@@ -157,7 +77,6 @@ export function LandingPage() {
             <MapPin size={17} /> Set your city to discover local opportunities.
           </p>
         </div>
-        <WorkspacePreview />
       </section>
 
       <section id="how-it-works" className={styles.how} aria-labelledby="how-title">

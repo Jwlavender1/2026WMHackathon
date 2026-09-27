@@ -65,3 +65,7 @@ For live integration, copy `.env.example` to your own `.env.local` if it does no
 Live onboarding also requires **GEOAPIFY_API_KEY** in `.env.local` and migration **002_onboarding_locations.sql**. The key stays server-side; never prefix it with `NEXT_PUBLIC_`. Restart after changing environment variables. See [onboarding and location behavior](ONBOARDING.md) for fields, validation, and the existing-deployment upgrade steps.
 
 The expanded category list and event category selector also require **003_event_categories.sql** in live mode. Run `npm.cmd run db:migrate` before deploying this version; see [Categories](CATEGORIES.md). Local demo mode needs no migration.
+
+Account deletion requires **004_account_deletion.sql** before deploying the updated server. See [Account deletion](ACCOUNT_DELETION.md) for retained history, Auth0 behavior, and upgrade instructions. The migration itself does not delete accounts.
+
+Event deletion also requires **005_event_deletion.sql** before deployment. See [Event management](EVENT_MANAGEMENT.md) for edit, cancellation, and deletion rules.

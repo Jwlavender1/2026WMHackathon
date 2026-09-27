@@ -17,6 +17,7 @@ import { LandingPage } from './landing';
 import { Empty, EventDetail, EventGrid, PageHeading } from './events';
 import { AuthForm, EventForm, GroupForm, ManageEvent, ProfileForm } from './forms';
 import { OnboardingForm } from './onboarding';
+import { DeleteEventButton } from './event-delete';
 import { sameCity, shortLocation } from '@/lib/location';
 import { authenticationState } from '@/lib/types';
 import { isPublicPage } from '@/lib/access';
@@ -168,11 +169,13 @@ function Browse() {
           <span>Organizing group</span>
           <select name="group" defaultValue={group}>
             <option value="">All groups</option>
-            {data.groups.map((g) => (
-              <option key={g.id} value={g.id}>
-                {g.name}
-              </option>
-            ))}
+            {data.groups
+              .filter((g) => !g.archived_at)
+              .map((g) => (
+                <option key={g.id} value={g.id}>
+                  {g.name}
+                </option>
+              ))}
           </select>
         </label>
         <label>
@@ -372,10 +375,21 @@ function EventHub() {
                   <Users size={16} />
                   {signups.length} registered
                 </span>
-                <Link className="button secondary small" href={`/event-hub/${e.id}/manage`}>
-                  {tab === 'previous' ? 'Record attendance' : 'Manage'}
-                  <ArrowRight size={15} />
-                </Link>
+                <div className="event-row-actions">
+                  <Link className="button secondary small" href={`/event-hub/${e.id}/manage`}>
+                    {tab === 'previous' ? 'Record attendance' : 'Manage'}
+                    <ArrowRight size={15} />
+                  </Link>
+                  {eventPhase(e) === 'upcoming' && (
+                    <Link
+                      className="button secondary small"
+                      href={`/event-hub/${e.id}/manage#edit-event`}
+                    >
+                      Edit event
+                    </Link>
+                  )}
+                  <DeleteEventButton event={e} />
+                </div>
               </div>
             );
           })}
@@ -399,6 +413,23 @@ function Community({ slug }: { slug?: string }) {
   const { data } = useApp();
   const group = slug ? data.groups.find((g) => g.slug === slug) : null;
   if (slug && !group) return <Empty title="Group not found" />;
+  if (group?.archived_at)
+    return (
+      <>
+        <PageHeading
+          eyebrow="ARCHIVED"
+          title={group.name}
+          description="This organization is no longer active on Turnout."
+        />
+        <section className="panel">
+          <h2>Archived organization</h2>
+          <p className="muted">
+            Upcoming and ongoing events were cancelled when this account was deleted. Past event
+            records and verified volunteer hours are preserved in service history.
+          </p>
+        </section>
+      </>
+    );
   if (group)
     return (
       <>
@@ -441,19 +472,21 @@ function Community({ slug }: { slug?: string }) {
         description="Get to know the organizations showing up in your community."
       />
       <div className="group-grid">
-        {data.groups.map((g) => (
-          <article className="panel group-card" key={g.id}>
-            <span className="group-logo">
-              <Users size={30} />
-            </span>
-            <p className="eyebrow">{shortLocation(g)}</p>
-            <h2>{g.name}</h2>
-            <p>{g.description}</p>
-            <Link href={`/groups/${g.slug}`} className="text-link">
-              Meet the group <ArrowRight size={17} />
-            </Link>
-          </article>
-        ))}
+        {data.groups
+          .filter((g) => !g.archived_at)
+          .map((g) => (
+            <article className="panel group-card" key={g.id}>
+              <span className="group-logo">
+                <Users size={30} />
+              </span>
+              <p className="eyebrow">{shortLocation(g)}</p>
+              <h2>{g.name}</h2>
+              <p>{g.description}</p>
+              <Link href={`/groups/${g.slug}`} className="text-link">
+                Meet the group <ArrowRight size={17} />
+              </Link>
+            </article>
+          ))}
       </div>
     </>
   );

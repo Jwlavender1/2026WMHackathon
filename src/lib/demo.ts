@@ -1,4 +1,13 @@
-import { eventSchema, groupSchema, occurrences, profileSchema, onboardingSchema } from './domain';
+import {
+  eventSchema,
+  groupSchema,
+  occurrences,
+  profileSchema,
+  onboardingSchema,
+  deleteAccountSchema,
+  deleteEventSchema,
+  eventDeletionReason,
+} from './domain';
 import { demoLocation } from './location';
 import type { DemoState, Event, Signup } from './types';
 export function demoCommand(
@@ -46,7 +55,38 @@ export function demoCommand(
   }
   if (!actor) throw new Error('Sign in to continue.');
   const group = state.groups.find((g) => g.owner_id === actor.id);
-  if (kind === 'profile') {
+  if (kind === 'delete_account') {
+    deleteAccountSchema.parse(input);
+    if (!state.profiles.some((profile) => profile.id === actor.id))
+      throw new Error('Account profile is missing.');
+    const now = new Date().toISOString();
+    const ownedGroups = state.groups.filter((item) => item.owner_id === actor.id);
+    const ownedIds = new Set(ownedGroups.map((item) => item.id));
+    for (const event of state.events) {
+      if (ownedIds.has(event.group_id) && Date.parse(event.ends_at) > Date.now())
+        event.status = 'cancelled';
+    }
+    for (const owned of ownedGroups) {
+      Object.assign(owned, {
+        owner_id: null,
+        archived_at: now,
+        description: 'This organization is no longer active on Turnout.',
+        city: '',
+        location: null,
+        website_url: null,
+        public_contact_email: null,
+        causes: [],
+      });
+    }
+    for (const signup of state.signups)
+      if (signup.verified_by === actor.id) signup.verified_by = null;
+    state.comments = state.comments.filter((comment) => comment.author_id !== actor.id);
+    state.signups = state.signups.filter((signup) => signup.volunteer_id !== actor.id);
+    state.profiles = state.profiles.filter((profile) => profile.id !== actor.id);
+    state.profile = null;
+    delete state.onboarding;
+    delete state.pendingUserId;
+  } else if (kind === 'profile') {
     const parsed = profileSchema.parse(input);
     const { location_id, location_token: _, ...fields } = parsed;
     const location = demoLocation(location_id);
@@ -141,7 +181,18 @@ export function demoCommand(
     const owns = group?.id === event.group_id,
       mine = state.signups.find((s) => s.event_id === event.id && s.volunteer_id === actor.id),
       readable = owns || mine?.status === 'active';
-    if (kind === 'join' || kind === 'withdraw') {
+    if (kind === 'delete_event') {
+      deleteEventSchema.parse(input);
+      if (actor.role !== 'organization' || !owns) throw new Error('You do not manage this event.');
+      const reason = eventDeletionReason(event, state.signups);
+      if (reason) throw new Error(reason);
+      state.comments = state.comments.filter((comment) => comment.event_id !== event.id);
+      state.signups = state.signups.filter((signup) => signup.event_id !== event.id);
+      state.tasks = state.tasks.filter((task) => task.event_id !== event.id);
+      state.events = state.events.filter((item) => item.id !== event.id);
+      if (event.series_id && !state.events.some((item) => item.series_id === event.series_id))
+        state.series = state.series.filter((series) => series.id !== event.series_id);
+    } else if (kind === 'join' || kind === 'withdraw') {
       if (actor.role !== 'volunteer') throw new Error('Volunteer account required.');
       if (event.status === 'cancelled' || Date.parse(event.starts_at) <= Date.now())
         throw new Error('Reservations are closed.');

@@ -7,6 +7,8 @@ const optionalWebsite = z
   .union([z.literal(''), z.url().refine((v) => /^https?:\/\//.test(v), 'Use an http or https URL')])
   .default('');
 const optionalEmail = z.union([z.literal(''), z.email().max(254)]).default('');
+export const deleteAccountSchema = z.strictObject({ confirmation: z.literal('DELETE') });
+export const deleteEventSchema = z.strictObject({ event_id: z.uuid(), confirmed: z.literal(true) });
 export const onboardingSchema = z
   .object({
     role: z.enum(['volunteer', 'organization']),
@@ -117,6 +119,13 @@ export function eventPhase(event: Event, now = Date.now()) {
       : Date.parse(event.starts_at) <= now
         ? 'ongoing'
         : 'upcoming';
+}
+export function eventDeletionReason(event: Event, signups: Signup[], now = Date.now()) {
+  if (signups.some((signup) => signup.event_id === event.id && signup.verified_minutes !== null))
+    return 'Events with verified attendance are kept in service history.';
+  if (Date.parse(event.starts_at) <= now)
+    return 'Events that have started are kept in service history.';
+  return null;
 }
 export function hoursServed(signups: Signup[], userId: string) {
   return (

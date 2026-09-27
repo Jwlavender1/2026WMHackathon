@@ -670,6 +670,29 @@ small {
   font-size: 11px;
   color: var(--muted);
 }
+.event-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+  max-width: 100%;
+}
+.event-editor-section {
+  scroll-margin-top: 140px;
+}
+.event-editor-section > h2 {
+  margin-bottom: 20px;
+}
+@media (max-width: 1020px) {
+  .event-table-row .event-row-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+  .event-table-row .event-row-actions .button {
+    margin-left: 0;
+  }
+}
 .table-date {
   display: flex;
   flex-direction: column;

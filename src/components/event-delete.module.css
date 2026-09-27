@@ -1,0 +1,54 @@
+.trigger {
+  color: #9f342b;
+  border-color: #dca8a0;
+}
+.dialog {
+  width: min(520px, calc(100% - 32px));
+  max-height: calc(100dvh - 48px);
+  margin: auto;
+  padding: 28px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: white;
+  color: var(--ink);
+  overflow-y: auto;
+  box-shadow: 0 24px 80px #30213730;
+}
+.dialog::backdrop {
+  background: #241c2e80;
+}
+.dialog h2 {
+  font-size: 24px;
+  margin-bottom: 20px;
+}
+.dialog .description p {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.8;
+  margin: 14px 0;
+}
+.description strong {
+  color: var(--ink);
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 25px;
+}
+.actions .confirm {
+  background: #9f342b;
+  color: white;
+}
+.actions .confirm:hover:not(:disabled) {
+  background: #82271f;
+}
+@media (max-width: 480px) {
+  .dialog {
+    padding: 23px;
+  }
+  .actions > button {
+    width: 100%;
+  }
+}

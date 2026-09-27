@@ -3,7 +3,7 @@ import { createContext, useCallback, useContext, useEffect, useState, type React
 import { readSnapshot, runCommand, uploadAvatar } from '@/app/actions';
 import { demoCommand } from '@/lib/demo';
 import { makeFixtures } from '@/lib/fixtures';
-import type { DemoState, Snapshot } from '@/lib/types';
+import { emptySnapshot, type DemoState, type Snapshot, type Result } from '@/lib/types';
 
 type Store = {
   data: Snapshot;
@@ -17,6 +17,7 @@ type Store = {
   switchUser: (id: string) => void;
   login: (mode: 'sign-in' | 'sign-up', input: Record<string, string>) => Promise<boolean>;
   logout: () => Promise<void>;
+  deleteAccount: () => Promise<Result>;
   avatar: (file: File) => Promise<void>;
 };
 const Context = createContext<Store | null>(null);
@@ -96,6 +97,7 @@ export function AppProvider({
             cancel: 'Event cancelled.',
             create_event: 'Your event is published.',
             update_event: 'Event updated.',
+            delete_event: 'Event deleted.',
             profile: 'Profile saved.',
             group: 'Group saved.',
             hide_comment: 'Message removed.',
@@ -165,6 +167,31 @@ export function AppProvider({
     }
     setNotice('Signed out.');
   };
+  const deleteAccount = async (): Promise<Result> => {
+    if (busy) return { ok: false, error: 'Wait for the current action to finish.' };
+    setBusy(true);
+    setNotice('');
+    try {
+      if (demo) {
+        save(demoCommand(data as DemoState, 'delete_account', { confirmation: 'DELETE' }));
+        setNotice('Your Turnout account has been deleted.');
+      } else {
+        const result = await runCommand('delete_account', { confirmation: 'DELETE' });
+        if (!result.ok) return result;
+        // Do not refresh: the account is gone. Clear local app data and end the Auth0 session.
+        setData(emptySnapshot());
+        window.location.assign(new URL('/auth/logout', window.location.origin).href);
+      }
+      return { ok: true, data: null };
+    } catch (error) {
+      return {
+        ok: false,
+        error: error instanceof Error ? error.message : 'Unable to delete account.',
+      };
+    } finally {
+      setBusy(false);
+    }
+  };
   const avatar = async (file: File) => {
     setBusy(true);
     try {
@@ -210,6 +237,7 @@ export function AppProvider({
         switchUser,
         login,
         logout,
+        deleteAccount,
         avatar,
       }}
     >

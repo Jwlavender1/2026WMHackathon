@@ -6,6 +6,8 @@ import {
   occurrences,
   profileSchema,
   onboardingSchema,
+  deleteAccountSchema,
+  deleteEventSchema,
 } from '@/lib/domain';
 import { verifyLocation } from '@/lib/geocoding';
 import { locationSchema } from '@/lib/location';
@@ -16,6 +18,8 @@ import { auth0 } from '@/lib/auth0';
 
 const uuid = z.uuid();
 const commandSchemas = {
+  delete_account: deleteAccountSchema,
+  delete_event: deleteEventSchema,
   onboard: onboardingSchema,
   profile: profileSchema,
   group: groupSchema,
@@ -30,6 +34,8 @@ export async function readSnapshot(): Promise<Snapshot> {
   // The landing page must not fetch or serialize app records for signed-out visitors.
   if (!(await auth0().getSession())?.user.sub) return emptySnapshot();
   return withDatabaseUser(async (client, actor, displayName, identity) => {
+    // A still-valid Auth0 cookie must not expose app data or recreate a deleted account.
+    if (!actor) return emptySnapshot();
     const { rows } = await client.query<{ snapshot: Snapshot }>(
       'SELECT public.app_snapshot() AS snapshot',
     );
@@ -37,7 +43,7 @@ export async function readSnapshot(): Promise<Snapshot> {
     if (actor && !snapshot.profile)
       snapshot.onboarding = { display_name: displayName, email: identity.email };
     return snapshot;
-  }, true);
+  });
 }
 export async function runCommand(kind: string, input: unknown): Promise<Result<{ id: string }>> {
   try {
@@ -66,6 +72,20 @@ export async function runCommand(kind: string, input: unknown): Promise<Result<{
       payload = commandSchemas[kind as keyof typeof commandSchemas].parse(input);
     }
     const data = await withDatabaseUser(async (client, actor, _name, identity) => {
+      if (kind === 'delete_account') {
+        const { rows } = await client.query<{ data: { id: string } }>(
+          'SELECT public.app_delete_account($1) AS data',
+          [payload.confirmation],
+        );
+        return rows[0].data;
+      }
+      if (kind === 'delete_event') {
+        const { rows } = await client.query<{ data: { id: string } }>(
+          'SELECT public.app_delete_event($1::uuid,$2::boolean) AS data',
+          [payload.event_id, payload.confirmed],
+        );
+        return rows[0].data;
+      }
       if (['onboard', 'profile', 'group', 'create_event', 'update_event'].includes(kind)) {
         let location;
         if (payload.location_token) {

@@ -9,6 +9,7 @@ import {
   ArrowRight,
   Camera,
   Check,
+  Clock3,
   Plus,
   Save,
   Sparkle,
@@ -20,7 +21,9 @@ import { Empty, PageHeading } from './events';
 import { AuthRequired } from './screens';
 import { LocationPicker } from './location-picker';
 import { CauseFields } from './onboarding';
-import { eventPhase, formatDate, hoursServed, initials } from '@/lib/domain';
+import { AccountDeletion } from './delete-account';
+import { DeleteEventButton } from './event-delete';
+import { eventPhase, eventDeletionReason, formatDate, hoursServed, initials } from '@/lib/domain';
 import type { Event, Signup } from '@/lib/types';
 
 export function ProfileForm() {
@@ -91,7 +94,7 @@ export function ProfileForm() {
                     defaultValue={p.bio}
                     maxLength={1000}
                     rows={5}
-                    placeholder="What brings you to your community?"
+                    placeholder="What brings you to volunteer?"
                   />
                 </label>
                 <Field
@@ -114,7 +117,7 @@ export function ProfileForm() {
             </section>
             <section className="panel profile-impact">
               <span className="sparkle-box">
-                <Sparkle />
+                <Clock3 aria-hidden="true" />
               </span>
               <p className="eyebrow">TIME WELL GIVEN</p>
               <strong className="hours-number">{hoursServed(data.signups, p.id).toFixed(1)}</strong>
@@ -133,11 +136,9 @@ export function ProfileForm() {
                     </div>
                   ))}
               </div>
-              <Link href="/browse" className="text-link">
-                Keep the good going <ArrowRight size={17} />
-              </Link>
             </section>
           </div>
+          <AccountDeletion />
         </>
       )}
     </AuthRequired>
@@ -224,6 +225,7 @@ export function GroupForm() {
           </div>
         </form>
       </section>
+      <AccountDeletion />
     </AuthRequired>
   );
 }
@@ -375,29 +377,29 @@ export function EventForm({ event }: { event?: Event }) {
                 defaultValue={event?.resources_to_bring.join(', ')}
                 placeholder="Closed-toe shoes, water bottle"
               />
-              <div className="form-two">
-                <label>
-                  Repeat
-                  <select
-                    value={interval}
-                    onChange={(e) => setInterval(e.target.value)}
-                    disabled={!!event}
-                  >
-                    <option value="0">One-time event</option>
-                    <option value="1">Every week</option>
-                    <option value="2">Every two weeks</option>
-                  </select>
-                </label>
-                <Field
-                  label="Number of occurrences"
-                  name="count"
-                  type="number"
-                  min={interval === '0' ? 1 : 2}
-                  max={12}
-                  defaultValue={event ? 1 : 2}
-                  readOnly={!!event || interval === '0'}
-                />
-              </div>
+              {event ? (
+                <input type="hidden" name="count" value="1" />
+              ) : (
+                <div className="form-two">
+                  <label>
+                    Repeat
+                    <select value={interval} onChange={(e) => setInterval(e.target.value)}>
+                      <option value="0">One-time event</option>
+                      <option value="1">Every week</option>
+                      <option value="2">Every two weeks</option>
+                    </select>
+                  </label>
+                  <Field
+                    label="Number of occurrences"
+                    name="count"
+                    type="number"
+                    min={interval === '0' ? 1 : 2}
+                    max={12}
+                    defaultValue={2}
+                    readOnly={interval === '0'}
+                  />
+                </div>
+              )}
               <p className="field-help">
                 {event
                   ? 'Changes apply to this occurrence only.'
@@ -486,7 +488,7 @@ export function EventForm({ event }: { event?: Event }) {
               <p className="field-help">
                 Each volunteer reserves one task.{' '}
                 {event
-                  ? 'Capacity cannot fall below existing reservations.'
+                  ? 'Capacity cannot fall below existing reservations. Task names and descriptions stay fixed after publishing.'
                   : 'We’ll stop accepting reservations when a task is full.'}
               </p>
             </section>
@@ -495,7 +497,7 @@ export function EventForm({ event }: { event?: Event }) {
                 Back to event hub
               </Link>
               <button className="button" disabled={busy}>
-                <Plus size={18} />
+                {event ? <Save size={18} /> : <Plus size={18} />}
                 {busy ? 'Saving…' : event ? 'Save changes' : 'Publish event'}
               </button>
             </div>
@@ -554,7 +556,16 @@ export function ManageEvent({ id }: { id: string }) {
           </p>
         )}
       </section>
-      {phase === 'upcoming' && <EventForm event={event} />}{' '}
+      {phase === 'upcoming' && (
+        <section
+          id="edit-event"
+          className="event-editor-section"
+          aria-labelledby="edit-event-heading"
+        >
+          <h2 id="edit-event-heading">Edit event</h2>
+          <EventForm event={event} />
+        </section>
+      )}
       {['upcoming', 'ongoing'].includes(phase) && (
         <section className="panel cancel-panel">
           <h3>Plans changed?</h3>
@@ -585,6 +596,14 @@ export function ManageEvent({ id }: { id: string }) {
           )}
         </section>
       )}
+      <section className="panel cancel-panel">
+        <h3>Delete event</h3>
+        <p className="muted">
+          {eventDeletionReason(event, data.signups) ??
+            'Permanently remove this occurrence, its signups, tasks, and messages.'}
+        </p>
+        <DeleteEventButton event={event} returnToHub />
+      </section>
     </>
   );
 }

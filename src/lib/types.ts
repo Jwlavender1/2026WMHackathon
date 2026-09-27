@@ -18,7 +18,8 @@ export type Group = {
   description: string;
   city: string;
   website_url: string | null;
-  owner_id?: string;
+  owner_id?: string | null;
+  archived_at?: string | null;
   location?: Location | null;
   causes?: string[];
   public_contact_email?: string | null;

@@ -10,7 +10,7 @@ test('signed-out landing replaces private navigation and app pages', async ({ pa
   await expect(page.getByRole('navigation', { name: 'Main navigation' })).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Open navigation' })).toHaveCount(0);
   await expect(page.locator('.event-card')).toHaveCount(0);
-  await expect(page.getByText('EXAMPLE', { exact: true })).toBeVisible();
+  await expect(page.getByText('EXAMPLE', { exact: true })).toHaveCount(0);
   await page.evaluate(() => document.fonts.ready);
   await page.screenshot({ path: '.artifacts/landing-desktop.png', fullPage: true });
   for (const route of [
