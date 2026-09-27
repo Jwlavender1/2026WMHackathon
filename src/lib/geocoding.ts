@@ -101,3 +101,60 @@ export async function searchCities(
     return [{ location, token: signLocation(location, actor, env.AUTH0_SECRET!) }];
   });
 }
+
+const venueCache = new Map<string, { at: number; point: { lat: number; lng: number } | null }>();
+const VENUE_TTL = 24 * 60 * 60 * 1000;
+function kilometers(a: { lat: number; lng: number }, b: { lat: number; lng: number }) {
+  const rad = Math.PI / 180,
+    dLat = (b.lat - a.lat) * rad,
+    dLng = (b.lng - a.lng) * rad;
+  const h =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(a.lat * rad) * Math.cos(b.lat * rad) * Math.sin(dLng / 2) ** 2;
+  return 12742 * Math.asin(Math.sqrt(h));
+}
+/**
+ * Street-level position for a public event address, used only for the community map.
+ * Results must fall within 40 km of the event's verified city; otherwise the city point is used.
+ */
+export async function geocodeVenue(
+  address: string,
+  city: Location,
+  env: Record<string, string | undefined> = process.env,
+  request = fetch,
+  now = Date.now(),
+): Promise<{ lat: number; lng: number } | null> {
+  if (!env.GEOAPIFY_API_KEY || address.trim().length < 3) return null;
+  const text = `${address.trim()}, ${city.city}, ${city.state_code}`;
+  const cached = venueCache.get(text);
+  if (cached && now - cached.at < VENUE_TTL) return cached.point;
+  let point: { lat: number; lng: number } | null = null;
+  try {
+    const url = new URL('https://api.geoapify.com/v1/geocode/search');
+    url.search = new URLSearchParams({
+      text,
+      filter: 'countrycode:us',
+      bias: `proximity:${city.longitude},${city.latitude}`,
+      format: 'json',
+      limit: '1',
+      apiKey: env.GEOAPIFY_API_KEY,
+    }).toString();
+    const response = await request(url, { cache: 'no-store', signal: AbortSignal.timeout(6000) });
+    if (response.ok) {
+      const result = (await response.json())?.results?.[0];
+      const candidate = { lat: Number(result?.lat), lng: Number(result?.lon) };
+      if (
+        Number.isFinite(candidate.lat) &&
+        Number.isFinite(candidate.lng) &&
+        result?.result_type !== 'city' &&
+        kilometers(candidate, { lat: city.latitude, lng: city.longitude }) <= 40
+      )
+        point = candidate;
+    }
+  } catch {
+    return null; // Do not cache transient failures.
+  }
+  venueCache.set(text, { at: now, point });
+  if (venueCache.size > 1000) venueCache.delete(venueCache.keys().next().value!);
+  return point;
+}

@@ -30,6 +30,7 @@ export function CardNav({
     eventLink,
     { href: '/messages', label: 'Messages' },
     { href: '/community', label: 'Community' },
+    { href: '/needs', label: 'Needs map' },
     ...(organization ? [{ href: '/my-group', label: 'My group' }] : []),
   ];
   const cards = [
@@ -37,7 +38,7 @@ export function CardNav({
       title: 'Find your people.',
       caption: 'A cause for everyone.',
       className: 'purple',
-      links: [links[0], links[1], links[4]],
+      links: [links[0], links[1], links[4], links[5]],
     },
     {
       title: organization ? 'Make it happen.' : "See what's upcoming.",

@@ -1,6 +1,6 @@
 # Turnout AI feature plan
 
-**Status: saved for later; not implemented.** The team is focusing on UI changes first. Google AI Studio / the Gemini API is the likely provider, pending the team's final choice and API credentials.
+**Status:** the community needs map is implemented with Gemini-written, number-checked insights; see [Community needs map](COMMUNITY_NEEDS.md). Draft with AI below is still planned. The team is focusing on UI changes first. Google AI Studio / the Gemini API is the likely provider, pending the team's final choice and API credentials.
 
 ## Recommended first feature
 

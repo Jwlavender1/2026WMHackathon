@@ -33,6 +33,9 @@ services:
       - key: GEOAPIFY_API_KEY
         scope: RUN_TIME
         type: SECRET
+      - key: GEMINI_API_KEY
+        scope: RUN_TIME
+        type: SECRET
       - key: AUTH0_SECRET
         scope: RUN_TIME
         type: SECRET

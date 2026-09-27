@@ -17,6 +17,7 @@ export default async function Page({ params }: { params: Promise<{ path?: string
       '/event-hub/new',
       '/messages',
       '/community',
+      '/needs',
       '/sign-in',
       '/sign-up',
       '/onboarding',

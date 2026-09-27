@@ -18,6 +18,7 @@ import { Empty, EventDetail, EventGrid, PageHeading } from './events';
 import { AuthForm, EventForm, GroupForm, ManageEvent, ProfileForm } from './forms';
 import { OnboardingForm } from './onboarding';
 import { DeleteEventButton } from './event-delete';
+import { CommunityNeeds } from './needs';
 import { sameCity, shortLocation } from '@/lib/location';
 import { authenticationState } from '@/lib/types';
 import { isPublicPage } from '@/lib/access';
@@ -49,6 +50,7 @@ export function AppScreen({ route }: { route: string }) {
   if (route === '/events') return <MyEvents />;
   if (route.startsWith('/events/')) return <EventDetail id={route.split('/')[2]} />;
   if (route === '/community') return <Community />;
+  if (route === '/needs') return <CommunityNeeds />;
   if (route.startsWith('/groups/')) return <Community slug={route.split('/')[2]} />;
   if (route === '/messages') return <Messages />;
   if (route === '/profile') return <ProfileForm />;

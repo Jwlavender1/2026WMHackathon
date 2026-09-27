@@ -2,7 +2,7 @@
 
 **Status:** product scope approved September 26, 2026. The application is named **Turnout**. The updated design uses Dongle, purple/yellow, and top navigation as described below; it supersedes the original mockup's serif/green/sidebar styling. The user selected Auth0 and DigitalOcean and confirmed there is no real Supabase data to preserve. The team has deployed on DigitalOcean App Platform and the live health check passes. After updating Auth0's allowed URLs, the application owner confirmed authentication reaches onboarding; onboarding completion and logout remain to be verified. See the handoff for the exact deployed URLs.
 
-Team guides: [Local development](LOCAL_DEVELOPMENT.md) · [Git workflow](TEAM_WORKFLOW.md) · [Auth0/DigitalOcean setup](AUTH0_DIGITALOCEAN_HANDOFF.md) / [Onboarding and location rollout](ONBOARDING.md).
+Team guides: [Local development](LOCAL_DEVELOPMENT.md) · [Git workflow](TEAM_WORKFLOW.md) · [Auth0/DigitalOcean setup](AUTH0_DIGITALOCEAN_HANDOFF.md) / [Onboarding and location rollout](ONBOARDING.md) · [Community needs map](COMMUNITY_NEEDS.md).
 
 Category selections and migration 003 are documented in [Categories](CATEGORIES.md). Profiles, groups, and events share the approved eleven-category list. Event descriptors are selected by the organizer rather than inferred from the title; existing events remain uncategorized until edited.
 

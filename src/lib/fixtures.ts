@@ -46,10 +46,16 @@ export function makeFixtures(now = new Date()): DemoState {
       avatar_path: null,
     },
   ];
+  // Demo volunteers' chosen causes give the community needs map fictional gaps to show.
+  const demoInterests: Record<string, string[]> = {
+    [fixtureId(1)]: ['Education', 'Environment', 'Health', 'Food access'],
+    [fixtureId(2)]: ['Environment', 'Health', 'Food access'],
+    [fixtureId(3)]: ['Environment', 'Health', 'Housing'],
+  };
   profiles.forEach((profile) =>
     Object.assign(profile, {
       location: structuredClone(DEMO_LOCATIONS[0]),
-      interests: [],
+      interests: demoInterests[profile.id] ?? [],
       skills: '',
     }),
   );
