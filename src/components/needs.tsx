@@ -103,21 +103,25 @@ export function CommunityNeeds() {
       <section className="needs-tiles" aria-label="Summary for the next 30 days">
         <div className="needs-tile">
           <strong>{summary.totals.events}</strong>
-          <span>upcoming events</span>
+          <span>Upcoming events</span>
         </div>
         <div className="needs-tile">
           <strong>{summary.totals.open_spots}</strong>
-          <span>open volunteer spots</span>
+          <span>Open volunteer spots</span>
         </div>
         <div className="needs-tile">
-          <strong>{shown(summary.totals.volunteers_with_interests)}</strong>
-          <span>volunteers with chosen causes</span>
+          <strong>
+            {summary.totals.volunteers_with_interests === null
+              ? 'Fewer than 3'
+              : shown(summary.totals.volunteers_with_interests)}
+          </strong>
+          <span>Volunteers with chosen causes</span>
         </div>
         <div className="needs-tile">
           <strong>
             {summary.categories.filter((c) => (c.interested ?? 0) > 0 && c.events === 0).length}
           </strong>
-          <span>causes with interest but no events</span>
+          <span>Causes with interest but no events</span>
         </div>
       </section>
 

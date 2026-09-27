@@ -15,7 +15,7 @@ test('community needs map shows totals, gap insights, filters, and a table view'
     page.getByRole('heading', { name: 'Where help is needed.', level: 1 }),
   ).toBeVisible();
   const tiles = page.getByRole('region', { name: 'Summary for the next 30 days' });
-  await expect(tiles).toContainText('5upcoming events');
+  await expect(tiles).toContainText('5Upcoming events');
   // Demo volunteers chose Environment but no Environment events exist: the top gap.
   const insights = page.locator('.needs-insight');
   await expect(insights.first()).toContainText('Environment');
